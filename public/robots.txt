@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /admin_panel/
+Disallow: /app/editor
+Disallow: /app/checkout
+Disallow: /app/cabinet
+Disallow: /app/login
+Disallow: /pagini
+
+# AI crawlers — allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://fotocarte.md/sitemap.xml

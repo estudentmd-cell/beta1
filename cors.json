@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://fotocarte.md", "https://www.fotocarte.md", "https://fotocarte-app.web.app", "https://fotocarte-app.firebaseapp.com"],
+    "method": ["GET", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Range"]
+  }
+]

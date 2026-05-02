@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#3D6B5E" />
+    <meta name="facebook-domain-verification" content="g0jr6jbckv12ufsrtcwrcef2nec0m3" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Fotocarte — Albume foto premium</title>
+    <meta name="description" content="Albume foto premium, create cu dragoste în Moldova. Transformă pozele din telefon în amintiri de o viață." />
+    <link rel="canonical" href="https://fotocarte.md/" />
+    <meta property="og:title" content="Fotocarte — Albume foto premium" />
+    <meta property="og:description" content="Transformă pozele din telefon în albume pe care le vei răsfoi toată viața. Design gratuit inclus." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fotocarte.md/" />
+    <meta property="og:image" content="https://fotocarte.md/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="ro_MD" />
+    <meta property="og:site_name" content="Fotocarte" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fotocarte — Albume foto premium" />
+    <meta name="twitter:description" content="Transformă pozele din telefon în albume pe care le vei răsfoi toată viața." />
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-KLVGR6LS');</script>
+    <!-- End Google Tag Manager -->
+    <!-- Meta Pixel — loads SDK, init deferred to React (consent-aware) -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      // Init handled by React (src/utils/metaPixel.js) — consent-aware
+      // Pre-init only SDK loading, no events fired here
+      if (localStorage.getItem('fc_cookie_consent') === 'granted') {
+        fbq('init', '4243044435969286');
+        window.__fbPixelInited = true;
+      }
+    </script>
+    <!-- Microsoft Clarity — session recordings & heatmaps -->
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "wgwh8pmdky");
+    </script>
+    <!-- Preconnect — reduce latency for Firebase & fonts -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.innocence-editions.com" />
+  </head>
+  <body style="background:#FAF8F5">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KLVGR6LS"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <noscript><img height="1" width="1" style="display:none" id="fb-noscript"
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+    /></noscript>
+    <script>
+      // noscript pixel — doar cu consent
+      if (localStorage.getItem('fc_cookie_consent') === 'granted') {
+        var ns = document.getElementById('fb-noscript');
+        if (ns) ns.src = 'https://www.facebook.com/tr?id=4243044435969286&ev=PageView&noscript=1';
+      }
+    </script>
+    <div id="root"></div>
+    <script>
+      // One-time cleanup v3 — clear ALL old data
+      if (!localStorage.getItem('_cleaned_26mar_v8')) {
+        ['momentive-projects','momentive-orders','momentive-timeline','momentive-invitations',
+         'momentive-contact-log','momentive-user-notifications','momentive-admin-notifications',
+         'momentive-team'].forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('_cleaned_26mar_v8', '1');
+      }
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

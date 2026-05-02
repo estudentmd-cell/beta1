@@ -1,0 +1,294 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ── Users (Google Auth accounts) ──
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Clients ──
+    // Client docs are created server-side by verifyAndAuth Cloud Function (Admin SDK).
+    // Client-side: only read/update own doc.
+    match /clients/{clientId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clientId);
+      allow create: if isSignedIn() && request.auth.uid == clientId;
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == clientId);
+      allow delete: if isAdmin();
+    }
+
+    // ── Orders ──
+    match /orders/{orderId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.activeClientId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() ||
+        (isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.activeClientId == request.auth.uid));
+      allow delete: if isAdmin();
+
+      match /timeline/{eventId} {
+        allow read: if isAdmin() ||
+          (isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/orders/$(orderId)).data.activeClientId == request.auth.uid));
+        allow write: if isAdmin();
+      }
+      match /photos/{photoId} {
+        allow read: if isAdmin() ||
+          (isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/orders/$(orderId)).data.activeClientId == request.auth.uid));
+        allow write: if isAdmin() ||
+          (isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/orders/$(orderId)).data.activeClientId == request.auth.uid));
+      }
+    }
+
+    // ── Projects — user sees only their own ──
+    match /projects/{projectId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.activeClientId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() ||
+        (isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.activeClientId == request.auth.uid));
+      allow delete: if isAdmin();
+
+      match /history/{eventId} {
+        allow read: if isAdmin() ||
+          (isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/projects/$(projectId)).data.activeClientId == request.auth.uid));
+        allow write: if isAdmin() ||
+          (isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/projects/$(projectId)).data.activeClientId == request.auth.uid));
+      }
+    }
+
+    // ── Project data ──
+    match /project_data/{projectId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/projects/$(projectId)).data.activeClientId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() ||
+        (isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.client_id == request.auth.uid || get(/databases/$(database)/documents/projects/$(projectId)).data.activeClientId == request.auth.uid));
+      allow delete: if isAdmin();
+    }
+
+    // ── CMS site content — public read, admin write ──
+    match /site-content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Config — public read, admin write ──
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Cover templates — public read, admin write ──
+    match /cover-templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Designs — public read, admin write ──
+    match /designs/{designId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Team — public read, admin write ──
+    match /team/{memberId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Notifications — admin only ──
+    match /notifications/{notifId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Admins — admin reads/writes ──
+    match /admins/{adminId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == adminId);
+      allow create, update: if isSignedIn() && request.auth.uid == adminId
+        && request.auth.token.email == 'fotocartemd@gmail.com';
+      allow delete: if isAdmin();
+    }
+
+    // ── Email verification codes ──
+    // ALL operations happen server-side via Cloud Functions (Admin SDK).
+    // No client needs direct access.
+    match /email-codes/{email} {
+      allow read: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ── User notifications ──
+    match /user-notifications/{notifId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.clientId == request.auth.uid));
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.clientId == request.auth.uid));
+      allow delete: if isAdmin();
+    }
+
+    // ── Admin notifications — admin only ──
+    match /admin-notifications/{notifId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Invitations — public read, update only click count (validated), admin manages ──
+    match /invitations/{invId} {
+      allow read: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['clicks', 'lastClickAt', 'lastUtm']);
+      allow create, delete: if isAdmin();
+    }
+
+    // ── Visitor tracking — rate-limited by requiring a timestamp field ──
+    match /visitors/{visId} {
+      allow create: if request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.keys().size() < 15;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Pricing — public read, admin write ──
+    match /pricing/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Settings — public read, admin write ──
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Homepage CMS collections — public read, admin write ──
+    match /homepage_images/{cardId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_threeways/{cardId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_carousel/{cardId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_foursteps/{stepId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_whychoose/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_finalcta/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_howitworks/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_designservice/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_announcement/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_hotoffers/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_floatingcta/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_openalbum/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /open-album-gallery/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_travelbanner/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_travel/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_giftbanner/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_truststrip/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /homepage_faq/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Mail queue (notification emails) — only authenticated users ──
+    match /mail_queue/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Error tracking — validated structure, max 10 fields ──
+    match /errors/{docId} {
+      allow create: if request.resource.data.keys().hasAll(['message', 'createdAt'])
+        && request.resource.data.keys().size() < 12;
+      allow read: if isAdmin();
+    }
+
+    // ── Funnel analytics — validated structure ──
+    match /funnel/{docId} {
+      allow create: if request.resource.data.keys().hasAll(['step', 'createdAt'])
+        && request.resource.data.keys().size() < 12;
+      allow read: if isAdmin();
+    }
+
+    // ── Mail (Trigger Email extension) — only authenticated users ──
+    match /mail/{mailId} {
+      allow create: if isSignedIn();
+      allow read: if false;
+    }
+
+    // ── Rate limits — server-side only (Cloud Functions Admin SDK) ──
+    match /rate_limits/{docId} {
+      allow read, write: if false;
+    }
+
+    // ── Notifications log — admin only ──
+    match /notifications_log/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

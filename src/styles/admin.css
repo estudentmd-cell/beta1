@@ -1,0 +1,82 @@
+/* ═══ ADMIN PANEL — Custom CSS ═══ */
+
+/* Pulse animation for live dots */
+@keyframes adminPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.admin-pulse { animation: adminPulse 2s infinite; }
+
+/* Live status dots */
+.admin-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.admin-dot.active { background:#22c55e; }
+.admin-dot.idle { background:#eab308; }
+.admin-dot.offline { background:#9ca3af; }
+
+/* Funnel bars */
+.admin-funnel-bar { height:24px; border-radius:4px; background:linear-gradient(90deg, #3D6B5E, #5a9e8f); transition:width .6s ease; }
+
+/* Timeline */
+.admin-tl-track { position:relative; padding-left:24px; border-left:2px solid #e5e7eb; }
+.admin-tl-dot { position:absolute; left:-7px; width:12px; height:12px; border-radius:50%; border:2px solid #fff; }
+.admin-tl-dot.green { background:#22c55e; }
+.admin-tl-dot.blue { background:#3b82f6; }
+.admin-tl-dot.amber { background:#f59e0b; }
+.admin-tl-dot.red { background:#ef4444; }
+.admin-tl-dot.gray { background:#9ca3af; }
+
+/* Bottleneck severity */
+.admin-bn-card { border-radius:8px; padding:16px; border-left:4px solid; }
+.admin-bn-card.critical { border-left-color:#ef4444; background:#fef2f2; }
+.admin-bn-card.warning { border-left-color:#f59e0b; background:#fffbeb; }
+
+/* Sidebar scrollbar */
+.admin-sidebar::-webkit-scrollbar { width:4px; }
+.admin-sidebar::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:2px; }
+
+/* Table hover */
+.admin-table tbody tr:hover { background:#f8fafc; cursor:pointer; }
+
+/* Timeline pause gaps */
+.admin-tl-gap { font-size:11px; color:#9ca3af; padding:4px 0 4px 8px; }
+.admin-tl-gap.warning { color:#f59e0b; }
+.admin-tl-gap.critical { color:#ef4444; }
+
+/* Feed items */
+.admin-feed-item { padding:8px 12px; border-left:3px solid transparent; font-size:13px; }
+.admin-feed-item.blue { border-left-color:#3b82f6; }
+.admin-feed-item.green { border-left-color:#22c55e; }
+.admin-feed-item.gold { border-left-color:#f59e0b; }
+.admin-feed-item.red { border-left-color:#ef4444; }
+
+/* ═══ CMS EDIT MODE — stil Tilda ═══ */
+
+/* Editable text hover highlight */
+.cms-editable-text {
+  position: relative;
+  border-radius: 3px;
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.cms-editable-text:hover {
+  box-shadow: 0 0 0 2px rgba(61,107,94,.35);
+  background: rgba(61,107,94,.04);
+}
+.cms-editable-text:focus {
+  box-shadow: 0 0 0 2px rgba(61,107,94,.7);
+  background: rgba(61,107,94,.06);
+}
+
+/* Editable image hover highlight */
+.cms-editable-img {
+  cursor: pointer;
+  border-radius: inherit;
+}
+
+/* Toolbar */
+.cms-toolbar {
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,.97);
+}
+
+/* Animate scale in for package cards */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

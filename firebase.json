@@ -1,0 +1,66 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": [
+    {
+      "bucket": "fotocarte-app.firebasestorage.app",
+      "rules": "storage.rules"
+    },
+    {
+      "bucket": "fotocarte-app-md-bucket",
+      "rules": "storage.rules"
+    }
+  ],
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "X-XSS-Protection", "value": "1; mode=block" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+          { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.google.com https://www.gstatic.com https://cdn.emailjs.com https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.firebasestorage.app https://*.cloudfunctions.net https://ipapi.co https://api.emailjs.com https://api.ipify.org https://firestore.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.facebook.com https://connect.facebook.net https://www.google.com https://api.cloudinary.com https://res.cloudinary.com wss://*.firebaseio.com https://www.clarity.ms https://*.clarity.ms; frame-src https://accounts.google.com https://*.firebaseapp.com https://www.facebook.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; form-action 'self'" }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.@(webp|jpg|jpeg|png|svg|gif|ico)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+        ]
+      },
+      {
+        "source": "**/*.@(woff2|woff|ttf)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

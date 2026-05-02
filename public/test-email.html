@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test Email</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body style="font-family:sans-serif;padding:40px;text-align:center;">
+<h2>Test Email Notifications</h2>
+
+<button onclick="sendOrder()" style="padding:16px 32px;font-size:18px;margin:10px;cursor:pointer;background:#1a1614;color:#fff;border:none;border-radius:12px;">
+  Send Order Confirmation
+</button>
+
+<button onclick="sendMaketa()" style="padding:16px 32px;font-size:18px;margin:10px;cursor:pointer;background:#c8956c;color:#fff;border:none;border-radius:12px;">
+  Send Maketa Ready
+</button>
+
+<div id="msg" style="margin-top:20px;font-size:16px;padding:20px;"></div>
+
+<script>
+emailjs.init('G5ZCle95xNR-1_AFo');
+
+function show(text, color) {
+  var el = document.getElementById('msg');
+  el.innerHTML = text;
+  el.style.color = color;
+}
+
+function sendOrder() {
+  show('Se trimite...', '#999');
+  emailjs.send('service_riu4h4v', 'template_generic_html', {
+    to_email: 'estudentmd@gmail.com',
+    subject: 'Comanda ta #FC-TEST-001 a fost plasata',
+    greeting: 'Salut! 👋',
+    message: 'Salut Dumitru, comanda ta a fost inregistrata cu succes.',
+    box_title: 'Detalii comanda',
+    box_content: '<strong>Produs:</strong> Fotocarte Premium<br/><strong>Format:</strong> 20x20 cm<br/><strong>Pagini:</strong> 24<br/><strong>Serviciu:</strong> Serviciu designer<br/><strong>Plata:</strong> Card bancar<br/><br/><strong style="font-size:18px;">Total: 450,00 lei</strong><br/><br/><span style="font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Adresa de livrare</span><br/>Str. Stefan cel Mare 45, Chisinau, Moldova',
+    action_url: 'https://fotocarte-app.web.app/app/cabinet',
+    button_text: 'Vezi comanda ta',
+    note: '📦 Livrare estimata in 18 zile lucratoare',
+    footer_message: 'Multumim ca ai ales fotocarte.md!'
+  }).then(function() {
+    show('✅ Order confirmation SENT! Verifica inbox-ul.', 'green');
+  }, function(err) {
+    show('❌ Eroare: ' + (err.text || err.message || JSON.stringify(err)), 'red');
+  });
+}
+
+function sendMaketa() {
+  show('Se trimite...', '#999');
+  emailjs.send('service_riu4h4v', 'template_generic_html', {
+    to_email: 'estudentmd@gmail.com',
+    subject: 'Macheta albumului tau #FC-TEST-001 este gata!',
+    greeting: 'Salut! 🎉',
+    message: 'Salut Dumitru, designerul a finalizat macheta albumului tau.',
+    box_title: 'Urmatorul pas',
+    box_content: 'Verifica albumul si aproba-l sau cere modificari.',
+    action_url: 'https://fotocarte-app.web.app/app/cabinet',
+    button_text: 'Vezi albumul tau',
+    note: '⏱ Te rugam sa verifici macheta in cel mai scurt timp.',
+    footer_message: 'Multumim ca ai ales fotocarte.md!'
+  }).then(function() {
+    show('✅ Maketa ready SENT! Verifica inbox-ul.', 'green');
+  }, function(err) {
+    show('❌ Eroare: ' + (err.text || err.message || JSON.stringify(err)), 'red');
+  });
+}
+</script>
+</body>
+</html>

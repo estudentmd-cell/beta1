@@ -1,0 +1,78 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: check if user is admin via Firestore
+    function isAdmin() {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    // Helper: file is an allowed image type
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif|svg\\+xml|tiff)');
+    }
+
+    // Helper: file is under 50MB
+    function isUnderLimit() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+
+    // ── Client photo uploads: uploads/{clientId}/{projectId}/... ──
+    // Only the owner or admin can read/write their photos
+    match /uploads/{clientId}/{allPaths=**} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin());
+      allow write: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin()) &&
+        isImage() && isUnderLimit();
+    }
+
+    // ── Legacy uploaded path ──
+    match /uploaded/{clientId}/{allPaths=**} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin());
+      allow write: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin()) &&
+        isImage() && isUnderLimit();
+    }
+
+    // ── Originals — same ownership rules ──
+    match /originals/{clientId}/{allPaths=**} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin());
+      allow write: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin()) &&
+        isImage() && isUnderLimit();
+    }
+
+    // ── Resized — same ownership rules ──
+    match /resized/{clientId}/{allPaths=**} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == clientId || isAdmin());
+    }
+
+    // ── Public assets: CMS, covers, fonts, homepage, products ──
+    // Anyone can read (public content), ONLY admin can write
+    match /cms/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderLimit();
+    }
+    match /covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isUnderLimit();
+    }
+    match /fonts/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && request.resource.size < 10 * 1024 * 1024;
+    }
+    match /homepage/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderLimit();
+    }
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderLimit();
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Fotocarte — Albume foto premium",
+  "short_name": "Fotocarte",
+  "description": "Creează albume foto premium în 5 minute",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#3D6B5E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
