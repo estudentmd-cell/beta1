@@ -202,6 +202,122 @@ const L4 = [
   () => mkSplit('col', mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkLeaf('V_LONG'), 0.4),
   // PREMIUM V4: V_SHORT stânga + 2 S sus + H jos dreapta
   () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkLeaf('H'), 0.45), 0.4),
+
+  // ═══ 50 VARIANTE NOI — toate cu cluster stivuit (row nested), zero bețe ═══
+
+  // --- HERO STÂNGA + CLUSTER STIVUIT DREAPTA ---
+  // 1. V hero 55% + V_SHORT peste S dreapta
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 0.55),
+  // 2. V hero 60% + H peste V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), 0.60),
+  // 3. V hero 48% + S peste H dreapta
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), 0.48),
+  // 4. V_LONG hero 52% + V_SHORT peste S dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 0.52),
+  // 5. V hero 58% + S peste V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.58),
+  // 6. V hero 62% + H peste S dreapta
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.62),
+  // 7. V_LONG hero 45% + H peste V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), 0.45),
+  // 8. V hero 65% + 3 S stivuite micro dreapta
+  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.33), 0.65),
+  // 9. V hero 55% + H peste S + V_SHORT col dreapta
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), mkLeaf('V_SHORT'), 0.55), 0.55),
+  // 10. V_LONG hero 50% + S peste V_SHORT + V_SHORT col dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkLeaf('V_SHORT'), 0.55), 0.50),
+
+  // --- HERO DREAPTA + CLUSTER STIVUIT STÂNGA ---
+  // 11. V_SHORT peste S stânga + V hero 58% dreapta
+  () => mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mkLeaf('V'), 0.42),
+  // 12. H peste V_SHORT stânga + V hero 60% dreapta
+  () => mkSplit('col', mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), mkLeaf('V'), 0.40),
+  // 13. S peste H stânga + V_LONG hero 55% dreapta
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), mkLeaf('V_LONG'), 0.45),
+  // 14. V_SHORT peste H stânga + V hero 62% dreapta
+  () => mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('H'), 'V_SHORT', 'H'), mkLeaf('V'), 0.38),
+  // 15. S peste V_SHORT stânga + V_LONG hero 52% dreapta
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkLeaf('V_LONG'), 0.48),
+  // 16. 3 S stivuite stânga + V hero 58% dreapta
+  () => mkSplit('col', mkSplit('row', mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.33), mkLeaf('V'), 0.42),
+  // 17. H peste S stânga + V_SHORT col + V hero dreapta
+  () => mkSplit('col', mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), mkSplit('col', mkLeaf('V_SHORT'), mkLeaf('V'), 0.42), 0.35),
+  // 18. V_SHORT + S stivuite stânga + V_LONG hero dreapta
+  () => mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mkLeaf('V_LONG'), 0.38),
+  // 19. S + V_SHORT stivuite + V_SHORT col stânga + V hero dreapta
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkLeaf('V_SHORT'), 0.55), mkLeaf('V'), 0.45),
+  // 20. H peste S stânga + V_LONG hero 55% dreapta
+  () => mkSplit('col', mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), mkLeaf('V_LONG'), 0.45),
+
+  // --- HERO CENTRU + CLUSTER LATERALE ---
+  // 21. S stânga + V hero + H peste S cluster dreapta
+  () => mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('V'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.6), 0.18),
+  // 22. V_SHORT stânga + V_LONG hero + S peste V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.58), 0.25),
+  // 23. S mic stânga + V hero centru + H peste V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('V'), mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), 0.55), 0.20),
+  // 24. V_LONG stânga + V hero centru + S peste H dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mkLeaf('V'), mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), 0.6), 0.25),
+  // 25. S + V_SHORT stivuit stânga + V hero + V_SHORT dreapta
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkSplit('col', mkLeaf('V'), mkLeaf('V_SHORT'), 0.65), 0.30),
+
+  // --- MOZAIC COMPLEX (FULL PAGE ~30%) ---
+  // 26. V hero 55% + S peste S dreapta (FULL)
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.55),
+  // 27. S peste S stânga + V hero 55% (FULL)
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V'), 0.45),
+  // 28. V_LONG hero + H peste S dreapta (FULL)
+  () => mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.50),
+  // 29. S peste H stânga + V_LONG hero (FULL)
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), mkLeaf('V_LONG'), 0.50),
+  // 30. V hero + V_SHORT peste H dreapta (FULL)
+  () => mkSplit('col', mkLeaf('V'), mRow(mkLeaf('V_SHORT'), mkLeaf('H'), 'V_SHORT', 'H'), 0.52),
+  // 31. H peste V_SHORT stânga + V hero (FULL)
+  () => mkSplit('col', mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), mkLeaf('V'), 0.48),
+  // 32. V hero + 3 S stivuite (FULL)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.33), 0.55),
+  // 33. 3 S stivuite + V hero (FULL)
+  () => mkSplit('col', mkSplit('row', mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.33), mkLeaf('V'), 0.45),
+  // 34. V hero + H + S coloane + V_SHORT (FULL mozaic)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), mkLeaf('V_SHORT'), 0.52), 0.45),
+  // 35. V_SHORT + S peste H + V hero (FULL mozaic inv)
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), 0.48), mkLeaf('V'), 0.55),
+
+  // --- VARIANTE CU H NESTED PE PAGINĂ ---
+  // 36. V hero + col(H peste V_SHORT, V_LONG)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), mkLeaf('V_LONG'), 0.48), 0.52),
+  // 37. col(V_LONG, H peste S) + V hero
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.52), mkLeaf('V'), 0.48),
+  // 38. V hero + col(S peste H, S peste V_SHORT)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.48), 0.45),
+  // 39. col(V_SHORT peste H, S peste V_SHORT) + V hero
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('H'), 'V_SHORT', 'H'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.52), mkLeaf('V'), 0.52),
+  // 40. V hero + col(V_SHORT, H peste S) dreapta
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V_SHORT'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.55), 0.48),
+
+  // --- CLUSTER DUBLU (2 clustere stivuite) ---
+  // 41. V hero + cluster dublu: (S peste S) + (H peste V_SHORT)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), 0.48), 0.48),
+  // 42. cluster dublu stânga + V hero
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('V_SHORT'), mkLeaf('H'), 'V_SHORT', 'H'), 0.52), mkLeaf('V'), 0.52),
+  // 43. V_LONG hero + cluster: (V_SHORT peste H) + S
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('H'), 'V_SHORT', 'H'), mkLeaf('S'), 0.6), 0.50),
+  // 44. S + cluster: (H peste S) + V_LONG hero
+  () => mkSplit('col', mkSplit('col', mkLeaf('S'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.4), mkLeaf('V_LONG'), 0.50),
+  // 45. V hero + cluster: (S peste V_SHORT) + (H peste S)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.52), 0.50),
+
+  // --- FULL PAGE EDITORIAL ---
+  // 46. V_LONG hero 45% + S peste S + V_SHORT (FULL)
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V_SHORT'), 0.52), 0.45),
+  // 47. V_SHORT + S peste S + V_LONG hero (FULL)
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.48), mkLeaf('V_LONG'), 0.55),
+  // 48. V hero + V_SHORT peste S + V_LONG (FULL 3 zone)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mkLeaf('V_LONG'), 0.48), 0.38),
+  // 49. V_LONG + S peste V_SHORT + V hero (FULL 3 zone)
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.52), mkLeaf('V'), 0.62),
+  // 50. V hero + H peste V_LONG + S (FULL mozaic)
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('H'), mkLeaf('V_LONG'), 'H', 'V_LONG'), mkLeaf('S'), 0.58), 0.42),
 ];
 
 // ── 5 poze ──
