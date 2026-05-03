@@ -926,27 +926,28 @@ export default function EditorCanvas() {
       )}
 
       {/* ═══ SPREAD CONTROL BAR — desktop only ═══ */}
-      <div className="absolute top-0 left-0 right-0 h-10 bg-white/90 backdrop-blur hidden sm:flex items-center z-10 px-3 select-none">
+      <div className="absolute top-0 left-0 right-0 h-10 bg-white/90 backdrop-blur hidden lg:flex items-center z-10 px-3 select-none">
         <button onClick={toggleMode}
           className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mr-1 transition-colors cursor-pointer ${
             isSpreadMode ? 'bg-cyan/20 text-cyan' : 'bg-purple-500/20 text-purple-300'
-          }`} title="Panoramă / Pagină">
-          {isSpreadMode ? 'Panoramă' : 'Pagină'}
+          }`} title="Panorama / Pagina">
+          {isSpreadMode ? 'Panorama' : 'Pagina'}
         </button>
+
         <div className="absolute flex items-center gap-0.5" style={{ left: '29.5%', transform: 'translateX(-50%)' }}>
-          <button onClick={sbarLP} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout anterior stânga">‹</button>
+          <button onClick={sbarLP} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout anterior stanga">‹</button>
           <div className="w-6 h-6 flex items-center justify-center rounded text-[#8A8078]">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
           </div>
-          <button onClick={sbarLN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout următor stânga">›</button>
+          <button onClick={sbarLN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout urmator stanga">›</button>
         </div>
 
         <div className="absolute flex items-center gap-0.5" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-          <button onClick={sbarMP} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Rotație inversă">‹</button>
+          <button onClick={sbarMP} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Rotatie inversa">‹</button>
           <div className="w-6 h-6 flex items-center justify-center text-[#5C544B] bg-[#E8E4DB] rounded">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
           </div>
-          <button onClick={sbarMN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Shuffle rotație">›</button>
+          <button onClick={sbarMN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Shuffle rotatie">›</button>
         </div>
 
         <div className="absolute flex items-center gap-0.5" style={{ left: '70.5%', transform: 'translateX(-50%)' }}>
@@ -954,11 +955,11 @@ export default function EditorCanvas() {
           <div className="w-6 h-6 flex items-center justify-center rounded text-[#8A8078]">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
           </div>
-          <button onClick={sbarRN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout următor dreapta">›</button>
+          <button onClick={sbarRN} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout urmator dreapta">›</button>
         </div>
 
         <span className="absolute right-3 text-[10px] text-[#8A8078] font-bold">
-          {spread?.isCover ? 'Copertă' : `Rotația ${currentSpread + (spreads[0]?.isCover ? 0 : 1)}`}
+          {spread?.isCover ? 'Coperta' : `Rotatia ${currentSpread + (spreads[0]?.isCover ? 0 : 1)}`}
         </span>
       </div>
 

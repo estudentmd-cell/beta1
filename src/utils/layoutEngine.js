@@ -69,10 +69,11 @@ export function computeSeps(node, x, y, w, h, gap = 0) {
   return seps;
 }
 
+// RULE: NO LANDSCAPE — all photos treated as portrait or square
 export function getOrientation(photo) {
   if (!photo) return 'S';
   const ar = photo.origW / photo.origH;
-  if (ar > 1.2) return 'H';
+  // Never return 'H' (landscape) — treat wide photos as square
   if (ar < 0.833) return 'V';
   return 'S';
 }
@@ -83,296 +84,188 @@ export function getOrientation(photo) {
    H = horizontal (wide), V = vertical (tall), S = square/any
    ═══════════════════════════════════════════════════════════ */
 
-// ── 1 photo layouts ──
+// ═══ LAYOUT LIBRARY — MASK CONSTRUCTOR SYSTEM ═══
+// REGULI:
+// - SPREAD mode: doar col splits (zero landscape pe rotație)
+// - PAGE mode: col + row permise (măști mixte pe pagină)
+// - 4 MĂȘTI STANDARD: S(1:1), V_SHORT(4:5), V_LONG(9:16), H(1.91:1)
+
+// ── Mask aspect ratios (w/h) ──
+const MASK_RATIOS = {
+  S: 1.0,           // 1:1 square
+  V_SHORT: 0.8,     // 4:5 portrait
+  V: 0.667,         // 2:3 portrait (format foto clasic)
+  V_LONG: 0.75,     // 3:4 portrait (mai lat decât 9:16, mai îngust decât 4:5)
+  H: 1.5,           // 3:2 landscape (doar pe pagină!)
+};
+
+// ── Mask group builder ──
+// Calculează ratio-ul de split bazat pe proporțiile măștilor
+function maskRatio(maskA, maskB, dir) {
+  const rA = MASK_RATIOS[maskA] || 1;
+  const rB = MASK_RATIOS[maskB] || 1;
+  if (dir === 'col') {
+    // Side by side: lățimea fiecăruia e proporțională cu aspect ratio
+    // La aceeași înălțime h: wA = rA*h, wB = rB*h → ratio = wA/(wA+wB) = rA/(rA+rB)
+    return rA / (rA + rB);
+  } else {
+    // Stacked: înălțimea fiecăruia e proporțională cu 1/aspect ratio
+    // La aceeași lățime w: hA = w/rA, hB = w/rB → ratio = (1/rA) / (1/rA + 1/rB)
+    return (1/rA) / (1/rA + 1/rB);
+  }
+}
+
+// Shortcut builders
+function mCol(a, b, mA, mB) { return mkSplit('col', a, b, maskRatio(mA, mB, 'col')); }
+function mRow(a, b, mA, mB) { return mkSplit('row', a, b, maskRatio(mA, mB, 'row')); }
+
+// ═══ SPREAD MODE LAYOUTS (doar col splits — zero landscape pe rotație) ═══
+
+// ── 1 poză ──
 const L1 = [
-  () => mkLeaf('H'),
+  () => mkLeaf('V'),
 ];
 
-// ── 2 photo layouts ──
+// ── 2 poze ──
 const L2 = [
-  // VV: 2 portrete coloane
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.6),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.4),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.55),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.45),
-  // HH: 2 landscape rânduri (pe pagină pătrată = ratio 2:1, OK)
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5),
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.55),
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.45),
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.6),
-  // VH: portret + landscape mixt
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.45),
-  () => mkSplit('col', mkLeaf('H'), mkLeaf('V'), 0.55),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.5),
-  () => mkSplit('col', mkLeaf('H'), mkLeaf('V'), 0.5),
-  // SS: 2 pătrate coloane
-  () => mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5),
-  () => mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.55),
-  // SV, SH: pătrat + portret/landscape
-  () => mkSplit('col', mkLeaf('S'), mkLeaf('V'), 0.45),
-  () => mkSplit('col', mkLeaf('V'), mkLeaf('S'), 0.55),
-  () => mkSplit('row', mkLeaf('S'), mkLeaf('H'), 0.55),
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('S'), 0.45),
-  // HH: landscape rows asimetric
-  () => mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.4),
+  // V_LONG + V_SHORT side by side
+  () => mCol(mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 'V_LONG', 'V_SHORT'),
+  // V_SHORT + V_LONG
+  () => mCol(mkLeaf('V_SHORT'), mkLeaf('V_LONG'), 'V_SHORT', 'V_LONG'),
+  // V_SHORT + V_SHORT asimetric
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 0.58),
+  // V_LONG + S
+  () => mCol(mkLeaf('V_LONG'), mkLeaf('S'), 'V_LONG', 'S'),
+  // S + V_LONG
+  () => mCol(mkLeaf('S'), mkLeaf('V_LONG'), 'S', 'V_LONG'),
+  // V_SHORT + S
+  () => mCol(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'),
+  // S + V_SHORT
+  () => mCol(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'),
+  // V_LONG + V_LONG
+  () => mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_LONG'), 0.55),
 ];
 
-// ── 3 photo layouts (20+ variants) ──
+// ── 3 poze ──
 const L3 = [
-  // --- EXISTING 10 ---
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.55),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkLeaf('H'), 0.45),
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.45),
-  () => mkSplit('col', mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), mkLeaf('V'), 0.55),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('V'), 0.6), mkLeaf('H'), 0.6),
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.4), 0.4),
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkLeaf('H'), 0.5),
-  // --- NEW: SmartAlbums-style (10+ more) ---
-  // HVV: H top 60% + 2V bottom (from cap4-left)
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6),
-  // HVV: H top 40% + 2V bottom large
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4),
-  // VVH: 2V top + H bottom (from cap)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkLeaf('H'), 0.55),
-  // VVH: 2V top equal + H bottom 40%
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkLeaf('H'), 0.6),
-  // VHH: V tall left 55% + 2H stacked right (from cap10-left)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.55),
-  // VHH: V tall left 65% + 2H stacked right (from cap7-left)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.65),
-  // HHV: 2H stacked left + V tall right
-  () => mkSplit('col', mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), mkLeaf('V'), 0.45),
-  // HVV: H top + V left 60% + V right 40% (asimetric bottom)
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.6), 0.55),
-  // --- EXTRA: orientation mix combos ---
-  // HSS: H top 50% + 2 pătrate jos
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5),
-  // SSH: 2 pătrate sus + H jos
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkLeaf('H'), 0.5),
-  // VVV: V stânga 50% + 2V stacked dreapta (nu 3 cols înguste!)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5),
-  // VVV: 2V stacked stânga + V dreapta 50%
-  () => mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), mkLeaf('V'), 0.5),
-  // VSH: V stânga + S dreapta-sus + H dreapta-jos
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkLeaf('H'), 0.55), 0.5),
-  // HSV: H stânga-sus + S stânga-jos + V dreapta
-  () => mkSplit('col', mkSplit('row', mkLeaf('H'), mkLeaf('S'), 0.5), mkLeaf('V'), 0.5),
-  // HVS: H sus + col(V, S) jos
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('S'), 0.5), 0.5),
-  // SVH: S sus + col(V, H) jos
-  () => mkSplit('row', mkLeaf('S'), mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.5), 0.5),
-  // VHS: col(V left, row(H top, S bottom))
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkLeaf('S'), 0.5), 0.45),
-  // SHV: row(S top, col(H, V) bottom)
-  () => mkSplit('row', mkLeaf('S'), mkSplit('col', mkLeaf('H'), mkLeaf('V'), 0.5), 0.45),
+  // V_LONG hero stânga + 2 S stivuite dreapta
+  () => mCol(mkLeaf('V_LONG'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_LONG', 'V_SHORT'),
+  // 2 S stivuite stânga + V_LONG hero dreapta
+  () => mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V_LONG'), 'V_SHORT', 'V_LONG'),
+  // V_LONG + V_SHORT + V_SHORT (3 coloane)
+  () => mCol(mkLeaf('V_LONG'), mCol(mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 'V_LONG', 'V_SHORT'),
+  // V_SHORT + V_LONG + V_SHORT
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.58), 0.28),
+  // 3 V_SHORT asimetric
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 0.55), 0.38),
+  // V_LONG hero + H + S stivuite dreapta
+  () => mCol(mkLeaf('V_LONG'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 'V_LONG', 'V_SHORT'),
+  // S + H stivuite stânga + V_LONG hero dreapta
+  () => mCol(mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), mkLeaf('V_LONG'), 'V_SHORT', 'V_LONG'),
+  // V_SHORT + V_LONG + S (descrescător)
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mkLeaf('S'), 0.55), 0.32),
 ];
 
-// ── 4 photo layouts (20+ variants) ──
+// ── 4 poze ──
 const L4 = [
-  // --- EXISTING 10 ---
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5),
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.5),
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.33), 0.45),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkLeaf('H'), 0.5),
-  () => mkSplit('col', mkSplit('row', mkLeaf('H'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.33), mkLeaf('V'), 0.55),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('V'), 0.6), mkSplit('col', mkLeaf('V'), mkLeaf('S'), 0.4), 0.5),
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.45), 0.5),
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.45),
-  // --- NEW: SmartAlbums-style (12+ more) ---
-  // VVVH: 3V top 45% + 1H bottom (from cap1-left)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkLeaf('H'), 0.45),
-  // HVVV: 1H top 55% + 3V bottom (from cap3-left)
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.55),
-  // V+3sidebar: heroV 75% + 3 small stacked (from cap5-right)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.75),
-  // V+3sidebar: heroV 65% + 3 stacked (from cap7-left)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.65),
-  // 3sidebar+V: 3 stacked left + heroV right 65%
-  () => mkSplit('col', mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkLeaf('V'), 0.35),
-  // Pinwheel: asymmetric 2×2 (from cap12-left)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.35), 0.5),
-  // 2V top + V35% H65% bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.35), 0.5),
-  // H top 40% + 3V bottom
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.4),
-  // 3V top + H bottom 40%
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkLeaf('H'), 0.6),
-  // 2×2 asymmetric (60/40 both axes)
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('V'), 0.6), mkSplit('col', mkLeaf('V'), mkLeaf('S'), 0.4), 0.6),
-  // V big left + H + 2S grid right (mosaic)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.45),
-  // VSHH: V stânga + S dreapta-sus + 2H stacked dreapta-jos
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.45), 0.45),
-  // HVSH: H sus + col(V, S, H) jos → row(H, col(V, col(S, H)))
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkLeaf('H'), 0.5), 0.45), 0.45),
-  // VHVH: alternating col(V, row(H, col(V, H)))
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.5), 0.5), 0.45),
+  // V hero stânga + 2 S stivuite + V_SHORT dreapta (APROBAT)
+  () => mCol(mkLeaf('V'), mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 'V', 'V_SHORT'),
+  // V_SHORT + 2 S stivuite + V hero dreapta (APROBAT)
+  () => mCol(mCol(mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), mkLeaf('V'), 'V_SHORT', 'V'),
+  // V hero + S side + H sub + V_SHORT (APROBAT)
+  () => mCol(mkLeaf('V'), mCol(mRow(mkLeaf('S'), mkLeaf('H'), 'S', 'H'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 'V', 'V_SHORT'),
+  // V_LONG hero stânga + V_SHORT peste S dreapta
+  () => mCol(mkLeaf('V_LONG'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 'V_LONG', 'V_SHORT'),
+  // S peste V_SHORT stânga + V_LONG hero dreapta
+  () => mCol(mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkLeaf('V_LONG'), 'V_SHORT', 'V_LONG'),
+  // V hero stânga 42% + S centru + 2 V_SHORT stivuite dreapta
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('S'), mRow(mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 0.42), 0.42),
+  // 2 V_SHORT stivuite stânga + S centru + V hero dreapta
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), mkLeaf('S'), 0.58), mkLeaf('V'), 0.58),
+  // V hero stânga 45% + 2 S stivuite + V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V_SHORT'), 0.55), 0.45),
+  // V_SHORT stânga + V_LONG hero centru 40% + 2 S stivuite dreapta
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 0.6), 0.25),
+  // V_LONG hero stânga + V_SHORT + S stivuite centru + V dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mkLeaf('V'), 0.45), 0.4),
+  // V hero stânga 43% + V_LONG peste H stivuite + V_SHORT dreapta
+  () => mkSplit('col', mkLeaf('V'), mCol(mRow(mkLeaf('V_LONG'), mkLeaf('H'), 'V_LONG', 'H'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 0.43),
+  // S + V_SHORT stivuite stânga 32% + V_LONG hero centru + V_SHORT dreapta
+  () => mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.62), 0.32),
+  // V_LONG hero stânga + H peste V_SHORT stivuite + V dreapta
+  () => mCol(mkLeaf('V_LONG'), mCol(mRow(mkLeaf('H'), mkLeaf('V_SHORT'), 'H', 'V_SHORT'), mkLeaf('V'), 'V_SHORT', 'V'), 'V_LONG', 'V_SHORT'),
+  // PREMIUM V1: Hero V_LONG stânga 60% + cluster H & S dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.4), 0.6),
+  // PREMIUM V2: V_SHORT stânga + cluster H peste S centru + V_LONG dreapta
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), mkLeaf('V_LONG'), 0.45), 0.3),
+  // PREMIUM V3: Cluster 3 S stivuite stânga 40% + hero V_LONG dreapta
+  () => mkSplit('col', mkSplit('row', mkLeaf('S'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkLeaf('V_LONG'), 0.4),
+  // PREMIUM V4: V_SHORT stânga + 2 S sus + H jos dreapta
+  () => mkSplit('col', mkLeaf('V_SHORT'), mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkLeaf('H'), 0.45), 0.4),
 ];
 
-// ── 5 photo layouts (20+ variants) ──
+// ── 5 poze ──
 const L5 = [
-  // --- EXISTING 7 ---
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.45),
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.4),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.45),
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.55),
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.6),
-  // --- NEW: SmartAlbums-style (15+ more) ---
-  // 2V top 60% + 3V bottom (from cap6-left)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.6),
-  // 3V top 45% + 2V bottom (from cap8-right)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.45),
-  // 3V top + 2 asim bottom 40/60 (from cap9-left)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.4), 0.45),
-  // heroV+2V top + 2V bottom (from cap2-right)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.55), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.58),
-  // 3V top + 2V bottom equal (from cap13-right)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.47),
-  // 2V top + 3V bottom (inverted)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.55),
-  // H top + 4V bottom cols
-  () => mkSplit('row', mkLeaf('H'), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5),
-  // heroV 40% + 2×2 grid right
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.4),
-  // 2×2 grid left + heroV right 40%
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkLeaf('V'), 0.6),
-  // heroV + 2H + 2V mosaic (from cap2-right style)
-  () => mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('H'), 0.6), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.45), 0.5),
-  // 2V top 50% + 3V bottom asim 45/30/25
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.45), 0.5),
-  // --- EXTRA: orientation mixes ---
-  // VVHHS: 2V top + H+H+S bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('H'), mkSplit('col', mkLeaf('H'), mkLeaf('S'), 0.5), 0.45), 0.5),
-  // VSHHS: V left + row(S, row(H, col(H, S)))
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('S'), mkSplit('col', mkLeaf('H'), mkSplit('row', mkLeaf('H'), mkLeaf('S'), 0.5), 0.5), 0.45), 0.45),
-  // VHSHV: mosaic mixt complet
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('H'), 0.45), mkSplit('col', mkLeaf('S'), mkSplit('row', mkLeaf('H'), mkLeaf('V'), 0.5), 0.45), 0.5),
+  // V_LONG hero + 4 cluster (2x2 S)
+  () => mCol(mkLeaf('V_LONG'), mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), 'V_LONG', 'S'),
+  // 4 cluster + V_LONG hero
+  () => mCol(mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), mkLeaf('V_LONG'), 'S', 'V_LONG'),
+  // V_LONG + V_SHORT + V_SHORT + V_LONG + V_SHORT (5 coloane)
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.42), mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.55), 0.38), 0.45),
+  // V_LONG hero + V_SHORT + 3 S stivuite
+  () => mCol(mkLeaf('V_LONG'), mCol(mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'S', 'V_SHORT'), 'V_SHORT', 'V_SHORT'), 'V_LONG', 'S'),
+  // 3 coloane: V_LONG + V_SHORT+S + V_SHORT+S
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.48), 0.35),
+  // PREMIUM V1: Hero V_LONG stânga 55% + H sus + 3 V_SHORT jos dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('row', mkLeaf('H'), mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 0.5), 0.33), 0.4), 0.55),
+  // PREMIUM V2: V_LONG hero stânga + 2 S stivuite + 2 V_SHORT stivuite dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('V_SHORT'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 0.48), 0.42),
+  // PREMIUM V3: 4 S grid stânga 40% + hero V_LONG dreapta
+  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), mkLeaf('V_LONG'), 0.4),
+  // PREMIUM V4: V_LONG hero stânga + V_SHORT + cluster H peste S dreapta
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mkLeaf('V_SHORT'), mRow(mkLeaf('H'), mkLeaf('S'), 'H', 'S'), 0.55), 0.45),
 ];
 
-// ── 6 photo layouts (20+ variants) ──
+// ── 6 poze ──
 const L6 = [
-  // --- EXISTING 5 ---
-  () => mkSplit('row', mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), mkSplit('col', mkLeaf('S'), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.33), 0.5),
-  () => mkSplit('col', mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('row', mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.45),
-  // --- NEW: SmartAlbums-style (17+ more) ---
-  // 3V×2 grid (from cap2-left)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.45),
-  // 3V×2 grid equal rows
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5),
-  // 2V big top + 4V small bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.55),
-  // 4V small top + 2V big bottom
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.45),
-  // heroV + 5 sidebar (from cap7-right style)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.55),
-  // 5 sidebar + heroV
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), mkLeaf('V'), 0.45),
-  // 2H left + 4V grid right (from cap7-right)
-  () => mkSplit('col', mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.45),
-  // heroV left + 2V+3V stacked right
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.45), 0.45),
-  // VSVSSS: mixt pag stânga V+S, dreapta V+S+S+S
-  () => mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('S'), 0.55), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('S'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.4),
+  // V_LONG hero + 5 cluster
+  () => mCol(mkLeaf('V_LONG'), mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'S', 'V_SHORT'), 'V_SHORT', 'V_SHORT'), 'V_LONG', 'S'),
+  // 3 coloane x 2 stivuite
+  () => mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mkSplit('col', mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 0.48), 0.35),
+  // V_LONG + V_LONG + 4 S cluster
+  () => mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_LONG'), 0.55), mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), 0.55),
+  // 6 coloane asimetrice
+  () => mkSplit('col', mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.42), mkLeaf('S'), 0.65), mkSplit('col', mkLeaf('V_SHORT'), mkSplit('col', mkLeaf('V_LONG'), mkLeaf('S'), 0.55), 0.4), 0.52),
 ];
 
-// ── 7 photo layouts (20+ variants) ── NEW
+// ── 7 poze ──
 const L7 = [
-  // 3V top + 4V bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.45),
-  // 4V top + 3V bottom
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.45),
-  // heroV + 2×3 grid (from cap5-left style)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.33), 0.35),
-  // 2×3 grid + heroV right
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.33), mkLeaf('V'), 0.65),
-  // heroV left + 3V + 3V stacked right (cap1-right style)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.4),
-  // 2V big + 5V small filmstrip
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.2), 0.6),
-  // 5V filmstrip top + 2V big bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.2), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4),
-  // heroV tall left + 3V col + 3V col right (from cap3-right, cap4-right)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('col', mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.35),
-  // Masonry 3 col: V+V | V+H | V+V
-  () => mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.6), mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('H'), 0.55), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.4), 0.5), 0.33),
-  // heroV 50% + 2V + 2V + 2V
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.33), 0.5),
-  // VVVSSHH: 3V left + 2S center + 2H right
-  () => mkSplit('col', mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('row', mkLeaf('S'), mkLeaf('S'), 0.5), mkSplit('row', mkLeaf('H'), mkLeaf('H'), 0.5), 0.5), 0.4),
-  // VVHSVVS: mosaic complex balanced
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('H'), mkLeaf('S'), 0.55), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkLeaf('S'), 0.6), 0.5),
+  // V_LONG hero + 6 cluster (3+3 stivuite)
+  () => mCol(mkLeaf('V_LONG'), mkSplit('col', mRow(mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'S', 'V_SHORT'), mRow(mkLeaf('S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'S', 'V_SHORT'), 0.48), 'V_LONG', 'S'),
+  // 3 coloane: V_LONG + 2x2 + 2stivuite
+  () => mkSplit('col', mkLeaf('V_LONG'), mkSplit('col', mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 0.55), 0.35),
+  // 7 coloane mixte
+  () => mkSplit('col', mkSplit('col', mkSplit('col', mkLeaf('V_LONG'), mkLeaf('V_SHORT'), 0.42), mkLeaf('S'), 0.62), mkSplit('col', mkSplit('col', mkLeaf('V_SHORT'), mkLeaf('V_LONG'), 0.55), mkSplit('col', mkLeaf('S'), mkLeaf('V_SHORT'), 0.45), 0.52), 0.45),
 ];
 
-// ── 8 photo layouts (20+ variants) ── NEW
+// ── 8 poze ──
 const L8 = [
-  // 4×2 grid
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5),
-  // 4V + 4V stacked
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.45),
-  // 3V + 3V + 2V big bottom
-  () => mkSplit('row', mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6),
-  // heroV + 7 grid (from cap5-left style)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.4), 0.35),
-  // Masonry 4 col: 2+2+2+2
-  () => mkSplit('col', mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.6), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.4), 0.5), mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.55), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.45), 0.5), 0.5),
-  // heroV + 3V sidebar + 4V bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5),
-  // 2V + 2V left + heroV + 3sidebar right
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.6), 0.55),
-  // 4V top asim + 4V bottom asim
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), 0.5),
-  // heroV + 3×3 minus 2 grid
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.6), 0.35),
-  // VVSSVVSS: alternating V+S blocks
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('S'), mkLeaf('S'), 0.5), 0.5), 0.5),
+  // 4 coloane x 2 stivuite
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.52), mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.48), 0.52),
+  // V_LONG hero + 7 grid
+  () => mCol(mkLeaf('V_LONG'), mkSplit('col', mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), mCol(mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), mkLeaf('V_SHORT'), 'V_SHORT', 'V_SHORT'), 0.52), 'V_LONG', 'S'),
 ];
 
-// ── 9 photo layouts (20+ variants) ── NEW
+// ── 9 poze ──
 const L9 = [
-  // 3×3 grid
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33),
-  // 4V + 5V quilt
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.2), 0.45),
-  // 5V + 4V quilt
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.2), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.55),
-  // 3V + 3V + 3V rows
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33),
-  // heroV + 8 grid (4+4)
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5), 0.3),
-  // 3V asim top + 3V mid + 3V bottom
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33),
-  // Masonry 3 col: 3+3+3
-  () => mkSplit('col', mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkLeaf('V'), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33),
-  // heroV + 4V + 4V stacked
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5), 0.35),
-  // 3×3 grid asim (40/30/30 cols)
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), 0.5), 0.33),
-  // 3V + heroV + 3V + 2V
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkLeaf('V'), 0.4), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5),
-  // 3V + 2V + 2V + 2V mosaic
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('row', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.33), 0.33),
+  // 3 coloane x 3 stivuite
+  () => mkSplit('col', mRow(mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), mkSplit('col', mRow(mkLeaf('S'), mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), 'S', 'V_SHORT'), mRow(mkLeaf('V_SHORT'), mRow(mkLeaf('S'), mkLeaf('S'), 'S', 'S'), 'V_SHORT', 'V_SHORT'), 0.48), 0.35),
 ];
 
-// ── 10 photo layouts (20+ variants) ── NEW
+// ── 10 poze ──
 const L10 = [
-  // 3V + 4V + 3V
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33),
-  // 2V hero + 4V + 4V
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.5), 0.45),
-  // heroV + 3×3 grid
-  () => mkSplit('col', mkLeaf('V'), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33), 0.3),
-  // 3×3 grid + heroV right
-  () => mkSplit('col', mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.33), mkLeaf('V'), 0.7),
-  // 3V + 2V big + 3V + 2V
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6), mkSplit('col', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6), 0.5),
-  // 3V + 3V asim + 2V + 2V
-  () => mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.4), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), 0.45), 0.35),
-  // 4V top + 3V mid + 3V bottom
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.5), mkSplit('row', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.5), 0.45),
-  // 2V + 3V + 3V + 2V balanced
-  () => mkSplit('row', mkSplit('col', mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), 0.4), mkSplit('col', mkSplit('col', mkLeaf('V'), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.33), mkSplit('col', mkLeaf('V'), mkLeaf('V'), 0.5), 0.6), 0.5),
+  // 5 coloane x 2 stivuite
+  () => mkSplit('col', mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.52), mkSplit('col', mkSplit('col', mRow(mkLeaf('V_SHORT'), mkLeaf('S'), 'V_SHORT', 'S'), mRow(mkLeaf('S'), mkLeaf('V_SHORT'), 'S', 'V_SHORT'), 0.48), mRow(mkLeaf('V_LONG'), mkLeaf('S'), 'V_LONG', 'S'), 0.62), 0.48),
 ];
 
 const VARIANT_GENERATORS = {
@@ -458,9 +351,9 @@ export function getVariantCount(n) {
    V photos → tall frames, H photos → wide frames.
    ═══════════════════════════════════════════════════════════ */
 
+// RULE: NO LANDSCAPE
 function getFrameOrientation(rect) {
   const ar = rect.w / rect.h;
-  if (ar > 1.25) return 'H';
   if (ar < 0.8) return 'V';
   return 'S';
 }
@@ -478,39 +371,70 @@ export function assignPhotos(tree, photos) {
     return tree;
   }
 
-  const rects = computeRects(tree, 0, 0, 1000, 500, 0);
-  const frameOrients = rects.map((r) => getFrameOrientation(r));
-  const photoOrients = photos.map((p) => getOrientation(p));
+  // 1. Etichetare poze — detectare orientare reală
+  function getPhotoTag(p) {
+    if (!p) return 'S';
+    const r = (p.origW || 1) / (p.origH || 1);
+    if (r < 0.95) return 'V';
+    if (r > 1.05) return 'H';
+    return 'S';
+  }
 
-  // Strict: never assign V to H or H to V (score 0 = skip)
+  // 2. Etichetare frame-uri — bazat pe dimensiunile din tree
+  const rects = computeRects(tree, 0, 0, 1000, 500, 0);
+  function getFrameTag(rect) {
+    const r = rect.w / rect.h;
+    if (r < 0.8) return 'V';   // frame vertical (înalt)
+    if (r > 1.25) return 'H';  // frame orizontal (lat)
+    return 'S';                 // frame pătrat
+  }
+
+  const frameTags = rects.map(getFrameTag);
+  const photoTags = photos.map(getPhotoTag);
+
+  // 3. Smart Match — scoring
+  function matchScore(photoTag, frameTag) {
+    if (photoTag === frameTag) return 10;          // perfect match
+    if (photoTag === 'S' || frameTag === 'S') return 5; // S e compatibil cu orice
+    if (photoTag === 'V' && frameTag === 'V') return 10;
+    if (photoTag === 'H' && frameTag === 'H') return 10;
+    return 1; // mismatch V↔H — penalizat dar nu interzis
+  }
+
   const used = new Set();
   const assignment = new Array(leaves.length).fill(null);
 
-  // First pass: assign only compatible matches
+  // Pass 1: potriviri perfecte (V→V, H→H, S→S)
   for (let fi = 0; fi < leaves.length; fi++) {
     let bestScore = -1, bestPi = -1;
     for (let pi = 0; pi < photos.length; pi++) {
       if (used.has(pi)) continue;
-      const score = orientationScore(photoOrients[pi], frameOrients[fi]);
-      if (score === 0) continue; // STRICT: skip mismatches entirely
-      if (score > bestScore) { bestScore = score; bestPi = pi; }
+      const score = matchScore(photoTags[pi], frameTags[fi]);
+      if (score >= 10 && score > bestScore) { bestScore = score; bestPi = pi; }
     }
-    if (bestPi >= 0) {
-      assignment[fi] = bestPi;
-      used.add(bestPi);
-    }
+    if (bestPi >= 0) { assignment[fi] = bestPi; used.add(bestPi); }
   }
 
-  // Second pass: fill remaining frames only with S-compatible photos
+  // Pass 2: potriviri S-compatibile
+  for (let fi = 0; fi < leaves.length; fi++) {
+    if (assignment[fi] !== null) continue;
+    let bestScore = -1, bestPi = -1;
+    for (let pi = 0; pi < photos.length; pi++) {
+      if (used.has(pi)) continue;
+      const score = matchScore(photoTags[pi], frameTags[fi]);
+      if (score >= 5 && score > bestScore) { bestScore = score; bestPi = pi; }
+    }
+    if (bestPi >= 0) { assignment[fi] = bestPi; used.add(bestPi); }
+  }
+
+  // Pass 3: fallback — orice poză rămasă în orice frame liber
   for (let fi = 0; fi < leaves.length; fi++) {
     if (assignment[fi] !== null) continue;
     for (let pi = 0; pi < photos.length; pi++) {
       if (used.has(pi)) continue;
-      if (frameOrients[fi] === 'S' || photoOrients[pi] === 'S') {
-        assignment[fi] = pi;
-        used.add(pi);
-        break;
-      }
+      assignment[fi] = pi;
+      used.add(pi);
+      break;
     }
   }
 
@@ -537,8 +461,9 @@ export function clampRatioForOrientation(node, newRatio, parentX, parentY, paren
   for (let i = 0; i < Math.min(origRects.length, newRects.length); i++) {
     const origAR = origRects[i].w / origRects[i].h;
     const newAR = newRects[i].w / newRects[i].h;
-    const origOrient = origAR > 1.2 ? 'H' : origAR < 0.83 ? 'V' : 'S';
-    const newOrient = newAR > 1.2 ? 'H' : newAR < 0.83 ? 'V' : 'S';
+    // RULE: NO LANDSCAPE
+    const origOrient = origAR < 0.83 ? 'V' : 'S';
+    const newOrient = newAR < 0.83 ? 'V' : 'S';
 
     if (origOrient !== 'S' && newOrient !== origOrient) {
       return node.ratio; // Would flip — keep original

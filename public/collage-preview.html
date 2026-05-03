@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Preview Colaje</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: #F5F3F0; padding: 20px; }
+h1 { font-size: 22px; margin-bottom: 5px; color: #1C1C1E; }
+.info { font-size: 12px; color: #888; margin-bottom: 15px; }
+.grid { display: flex; flex-wrap: wrap; gap: 14px; }
+.card { background: white; border: 1px solid #E0D8D0; border-radius: 10px; padding: 10px; }
+.label { font-size: 11px; color: #666; margin-top: 6px; text-align: center; font-weight: 600; }
+.spread { position: relative; background: #FAFAFA; border-radius: 4px; overflow: hidden; }
+.frame { position: absolute; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { padding: 6px 16px; border-radius: 8px; border: 1px solid #E0D8D0; background: white; cursor: pointer; font-size: 13px; font-weight: 600; }
+.tab.active { background: #3D6B5E; color: white; border-color: #3D6B5E; }
+</style>
+</head>
+<body>
+<h1>Preview Colaje — DIRECT din layoutEngine.js</h1>
+<p class="info">Fiecare grup citește LIVE din sistem. Ce vezi aici = ce vede clientul.</p>
+<div class="tabs" id="tabs"></div>
+<div class="grid" id="grid"></div>
+<script type="module">
+import { buildTree, getVariantCount, assignPhotos, computeRects } from '/src/utils/layoutEngine.js';
+const COLORS = ['#3D6B5E','#5B8A7A','#7BA99A','#4A7A6A','#2D5B4E','#6B9B8A','#8DBAA9','#3A6858','#4D7D6D','#5E8E7E'];
+let active = 4;
+function render(n) {
+  active = n;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', +t.dataset.n === n));
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  const total = getVariantCount(n);
+  const W = 280, H = 140;
+  const photos = Array.from({length: n}, (_, i) => ({ id:'p'+i, origW:3000, origH:4500 }));
+  for (let vi = 0; vi < total; vi++) {
+    const tree = buildTree(n, vi);
+    assignPhotos(tree, photos);
+    const rects = computeRects(tree, 0, 0, W, H, 2);
+    const card = document.createElement('div');
+    card.className = 'card';
+    const sp = document.createElement('div');
+    sp.className = 'spread';
+    sp.style.width = W+'px';
+    sp.style.height = H+'px';
+    const spine = document.createElement('div');
+    spine.style.cssText = 'position:absolute;top:0;bottom:0;left:50%;width:1px;background:#d0c8c0;z-index:5;';
+    sp.appendChild(spine);
+    rects.forEach((r, i) => {
+      const f = document.createElement('div');
+      f.className = 'frame';
+      f.style.left = r.x+'px'; f.style.top = r.y+'px';
+      f.style.width = Math.max(r.w,0)+'px'; f.style.height = Math.max(r.h,0)+'px';
+      f.style.background = COLORS[i%COLORS.length];
+      f.textContent = i+1;
+      sp.appendChild(f);
+    });
+    const lb = document.createElement('div');
+    lb.className = 'label';
+    lb.textContent = 'V'+(vi+1);
+    card.appendChild(sp);
+    card.appendChild(lb);
+    g.appendChild(card);
+  }
+}
+const tabs = document.getElementById('tabs');
+for (let n = 1; n <= 10; n++) {
+  const c = getVariantCount(n);
+  const btn = document.createElement('button');
+  btn.className = 'tab'+(n===active?' active':'');
+  btn.dataset.n = n;
+  btn.textContent = n+' poze ('+c+')';
+  btn.onclick = () => render(n);
+  tabs.appendChild(btn);
+}
+render(active);
+</script>
+</body>
+</html>

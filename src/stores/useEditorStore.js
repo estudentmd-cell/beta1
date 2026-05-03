@@ -338,6 +338,17 @@ const useEditorStore = create((set, get) => ({
               saveProject(snap);
               console.log(`%c[SYNC] Final save (all ${_perf.totalFiles} photos done)`, 'color: #B8860B; font-weight: bold');
             } catch {}
+            // Smart crop — calculate optimal crop offsets in background
+            try {
+              import('../utils/smartCropUtil').then(({ batchSmartCrop }) => {
+                const currentPhotos = get().photos.filter(p => p.thumbData && !p._smartCropped);
+                batchSmartCrop(currentPhotos, (photoId, cropOffset) => {
+                  set((s) => ({
+                    photos: s.photos.map(p => p.id === photoId ? { ...p, cropOffset, _smartCropped: true } : p),
+                  }));
+                });
+              });
+            } catch {}
           }
           return;
         }
@@ -403,7 +414,7 @@ const useEditorStore = create((set, get) => ({
                   thumbData: urls.thumb,          // 300px for sidebar — INSTANT
                   blob: urls.preview,
                   cloudinaryId: result.publicId,
-                  loading: false,                 // READY immediately — no polling needed
+                  loading: false,
                 };
               }),
             }));
@@ -738,10 +749,8 @@ const useEditorStore = create((set, get) => ({
     set({ spreads: newSpreads, _dirty: true, saveStatus: 'idle' });
   },
 
-  // CENTER ‹ — switch to spread mode if needed, then mixRotatePrev
-  // (rotate: move last photo to front + increment variant)
+  // CENTER ‹ — rotate photos + cycle variant (old system)
   sbarMP: () => {
-    // Block spread mode for subtiri
     try {
       const projStore = require('../stores/useProjectStore').default;
       if (projStore?.getState?.()?.productConfig?.slug === 'pagini-subtiri') return;
@@ -753,7 +762,6 @@ const useEditorStore = create((set, get) => ({
     sp = state._ensureSpreadMode(sp);
     const pg = sp.full;
     if (pg && pg.photos.length >= 2) {
-      // Rotate: move last photo to front
       const last = pg.photos.pop();
       pg.photos.unshift(last);
       pg._vi = ((pg._vi || 0) + 1) % Math.max(getVariantCount(pg.photos.length), 1);
@@ -766,8 +774,7 @@ const useEditorStore = create((set, get) => ({
     set({ spreads: newSpreads, _dirty: true, saveStatus: 'idle' });
   },
 
-  // CENTER › — switch to spread mode if needed, then mixRotate
-  // (shuffle: randomize all photos + random variant)
+  // CENTER › — shuffle photos + random variant (old system)
   sbarMN: () => {
     const state = get();
     let sp = { ...state.spreads[state.currentSpread] };
@@ -776,7 +783,6 @@ const useEditorStore = create((set, get) => ({
     sp = state._ensureSpreadMode(sp);
     const pg = sp.full;
     if (pg && pg.photos.length >= 2) {
-      // Fisher-Yates shuffle
       for (let i = pg.photos.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pg.photos[i], pg.photos[j]] = [pg.photos[j], pg.photos[i]];

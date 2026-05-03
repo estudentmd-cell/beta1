@@ -344,6 +344,25 @@ export default function EditorScreen() {
     setIsRestoring(false);
   }, [urlProjectId]);
 
+  // ── Smart crop — run on all photos that haven't been processed yet ──
+  useEffect(() => {
+    if (isRestoring) return;
+    const currentPhotos = useEditorStore.getState().photos;
+    const unprocessed = currentPhotos.filter(p => !p._smartCropped && (p.thumbData || p.previewUrl));
+    if (unprocessed.length === 0) return;
+    const timer = setTimeout(() => {
+      import('../utils/smartCropUtil').then(({ batchSmartCrop }) => {
+        console.log(`%c[SMARTCROP] Processing ${unprocessed.length} photos...`, 'color: #E6930A; font-weight: bold');
+        batchSmartCrop(unprocessed, (photoId, cropOffset) => {
+          useEditorStore.setState((s) => ({
+            photos: s.photos.map(p => p.id === photoId ? { ...p, cropOffset, _smartCropped: true } : p),
+          }));
+        });
+      }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isRestoring, photos.length]);
+
   // ── POST-RESTORE — no forced popup (like Periodica: photos appear in gallery, client decides) ──
 
   // ── SAVE SYSTEM — Canva-style: save on every completed action ──
