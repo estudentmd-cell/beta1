@@ -312,13 +312,7 @@ function PhotoGallery({ onClose, onAddMore, replaceLeafId = null }) {
               </svg>
               Încarcă
             </button>
-            {totalCount > 0 && (
-              <button onClick={() => { onClose(); setTimeout(() => useUIStore.getState().openModal('autoFill'), 100); }}
-                className="flex items-center gap-1 text-[11px] text-[#3D6B5E] font-semibold px-3 min-h-[44px] bg-[#E8F2ED] rounded-lg active:scale-95">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/></svg>
-                Auto
-              </button>
-            )}
+            {/* Auto — mutat in toolbar-ul de jos */}
           </div>
           <div className="text-right">
             <span className="text-[12px] font-semibold text-[#1c1c1c]">
@@ -393,7 +387,7 @@ function PhotoGallery({ onClose, onAddMore, replaceLeafId = null }) {
                     <div key={photo.id} className="relative">
                       <button
                         onClick={() => handleTap(photo)}
-                        className={`relative aspect-square overflow-hidden rounded w-full transition-all ${!isLoading ? 'active:scale-[0.93]' : ''} ${photo.used && !replaceLeafId ? 'opacity-25' : ''}`}
+                        className={`relative aspect-square overflow-hidden rounded w-full transition-all ${!isLoading ? 'active:scale-[0.93]' : ''}`}
                       >
                         {thumbSrc ? (
                           <LazyImage src={thumbSrc} alt="" className="w-full h-full object-cover" placeholderClass="w-full h-full bg-[#F5F1EB] animate-pulse" draggable={false} />
@@ -410,10 +404,12 @@ function PhotoGallery({ onClose, onAddMore, replaceLeafId = null }) {
                             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           </div>
                         )}
-                        {/* Used badge */}
+                        {/* Used badge — blue checkmark like Periodica */}
                         {photo.used && !isLoading && (
-                          <div className="absolute bottom-0 inset-x-0 bg-black/50 py-0.5 text-center">
-                            <span className="text-white text-[6px] font-bold">✓ {rotation}</span>
+                          <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-sm bg-[#3B82F6] flex items-center justify-center shadow-sm">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
                           </div>
                         )}
                       </button>
@@ -507,7 +503,7 @@ export default function MobileBottomToolbar({ onSave, onOrder }) {
 
       {/* Photo gallery — bottom half, rotation visible above */}
       {activeSheet === 'photos' && (
-        <div data-gallery-open className="fixed left-0 right-0 z-40 flex flex-col bg-[#FAF8F5] sm:hidden rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-[#E8E4DB]"
+        <div data-gallery-open className="fixed left-0 right-0 z-40 flex flex-col bg-[#FAF8F5] lg:hidden rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-[#E8E4DB]"
           style={{ top: '50vh', bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="flex justify-center pt-2 pb-1 cursor-pointer"
             onClick={closePhotos}
@@ -541,40 +537,43 @@ function ToolbarNav({ activeSheet, toggleSheet, onSave, onOrder }) {
   };
 
   return (
-    <nav className="sm:hidden z-50 fixed bottom-0 left-0 right-0"
+    <nav className="lg:hidden z-50 fixed bottom-0 left-0 right-0"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="bg-white/85 backdrop-blur-xl border-t border-black/[0.06] flex items-center justify-around h-14">
-        {/* Salvează */}
-        <button onClick={handleSave}
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[#5C544B] transition-colors">
-          {saveFlash ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D6B5E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          )}
-          <span className={`text-[10px] leading-tight font-medium ${saveFlash ? 'text-[#3D6B5E] font-semibold' : 'text-[#5C544B]'}`}>{saveFlash ? 'Salvat' : 'Salvează'}</span>
-        </button>
-        {/* Auto aranjare */}
-        <button onClick={() => { import('../../stores/useUIStore').then(m => m.default.getState().openModal('autoFill')); }}
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[#5C544B] transition-colors">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26z"/>
-          </svg>
-          <span className="text-[10px] leading-tight font-medium">Auto</span>
-        </button>
-        {/* Poze — centrat, accentuat */}
+      <div className="bg-white border-t border-[#E8E4DB] flex items-center justify-around h-14">
+        {/* Galerie — photo gallery (like Periodica "Галерея") */}
         <button onClick={() => toggleSheet('photos')}
-          className="flex flex-col items-center justify-center -mt-4 z-10">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all ${activeSheet === 'photos' ? 'bg-[#3D6B5E]' : 'bg-[#3D6B5E]/90'}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          </div>
-          <span className={`text-[10px] leading-tight mt-0.5 font-semibold ${activeSheet === 'photos' ? 'text-[#3D6B5E]' : 'text-[#5C544B]'}`}>Poze</span>
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${activeSheet === 'photos' ? 'text-[#3D6B5E]' : 'text-[#8A8078]'}`}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={activeSheet === 'photos' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+          <span className="text-[10px] leading-tight font-medium">Galerie</span>
         </button>
-        {/* Comandă */}
-        <button onClick={onOrder}
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[#5C544B] transition-colors">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-          <span className="text-[10px] leading-tight font-medium">Comandă</span>
+        {/* Sabloane — templates (like Periodica "Шаблоны") */}
+        <button onClick={() => toggleSheet('templates')}
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${activeSheet === 'templates' ? 'text-[#3D6B5E]' : 'text-[#8A8078]'}`}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span className="text-[10px] leading-tight font-medium">Sabloane</span>
+        </button>
+        {/* Auto AI — auto arrange (like Periodica "Собрать с ИИ") */}
+        <button onClick={() => { import('../../stores/useUIStore').then(m => m.default.getState().openModal('autoFill')); }}
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[#8A8078] transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          <span className="text-[10px] leading-tight font-medium">Auto AI</span>
+        </button>
+        {/* Mai mult — more options (like Periodica "Ещё") */}
+        <button onClick={() => toggleSheet('more')}
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${activeSheet === 'more' ? 'text-[#3D6B5E]' : 'text-[#8A8078]'}`}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+          </svg>
+          <span className="text-[10px] leading-tight font-medium">Mai mult</span>
         </button>
       </div>
     </nav>

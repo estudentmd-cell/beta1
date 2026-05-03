@@ -18,7 +18,7 @@ const PhotoItem = memo(function PhotoItem({ photo, idx, onDragStart, onDragOver,
       onClick={() => isReady && !photo.used && onClick(photo.id)}
       className={`relative mb-1 rounded-[4px] overflow-hidden group break-inside-avoid transition-all ${
         !isReady ? 'cursor-default pointer-events-none' :
-        photo.used ? 'opacity-30 cursor-default' : 'cursor-grab hover:brightness-95 active:scale-[0.97]'
+        photo.used ? 'cursor-default' : 'cursor-grab hover:brightness-95 active:scale-[0.97]'
       } ${isReorderFrom ? 'opacity-40 scale-95' : ''
       } ${isDragTarget ? 'ring-2 ring-ac scale-[1.02]' : ''}`}
     >
@@ -56,8 +56,10 @@ const PhotoItem = memo(function PhotoItem({ photo, idx, onDragStart, onDragOver,
         </svg>
       </button>
       {photo.used && (
-        <div className="absolute bottom-0 left-0 right-0 bg-black/40 py-0.5 text-center">
-          <span className="text-white text-[7px] font-bold">✓ plasată</span>
+        <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-sm bg-[#3B82F6] flex items-center justify-center shadow-sm">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
         </div>
       )}
       {isDragTarget && (

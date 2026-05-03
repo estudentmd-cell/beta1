@@ -1,0 +1,128 @@
+# Responsive System Rules
+# Bazat pe modelul Periodika (periodica.press)
+
+Acest proiect foloseste un sistem responsive UNITAR.
+Fara redirectionari separate pentru mobil. Un singur URL pentru toate dispozitivele.
+
+---
+
+## Breakpoints standard
+
+Foloseste INTOTDEAUNA aceste valori, nu le scrie hardcodat in componente:
+
+- Sub 768px   → mobil (phone)
+- 768px+      → tableta
+- 1024px+     → desktop (pragul PRINCIPAL pentru navigatie)
+- 1200px+     → desktop wide
+
+In Tailwind: sm=768px | lg=1024px | xl=1200px
+
+---
+
+## Reguli de navigatie
+
+Exista exact 3 componente de navigatie:
+
+1. MobileNavigation
+   - Pozitie: sticky, top: 0
+   - Vizibil:  sub 1024px  (display: flex)
+   - Ascuns:   peste 1024px (display: none)
+
+2. DesktopNavigation
+   - Pozitie: static, flex row orizontal
+   - Ascuns:  sub 1024px  (display: none)
+   - Vizibil: peste 1024px (display: flex)
+
+3. TabBar (bara de jos cu iconite)
+   - Pozitie: fixed, bottom: 0, z-index: 9999, width: 100%
+   - Contine: Home | Catalog | Proiecte | Cos | Profil
+   - Vizibil: sub 1024px  (display: block)
+   - Ascuns:  peste 1024px (display: none)
+
+---
+
+## CSS global obligatoriu
+
+Adauga in fisierul global de stiluri:
+
+.mobile-only  { display: block; }
+.desktop-only { display: none;  }
+
+@media (min-width: 1024px) {
+  .mobile-only        { display: none;  }
+  .desktop-only       { display: block; }
+  .TabBar             { display: none;  }
+  .MobileNavigation   { display: none;  }
+  .DesktopNavigation  { display: flex;  }
+}
+
+@media (max-width: 1023px) {
+  .DesktopNavigation  { display: none;  }
+  .MobileNavigation   { display: flex;  }
+  .TabBar             { display: block; }
+}
+
+---
+
+## Reguli stricte — NU face niciodata:
+
+- NU folosi redirectionari bazate pe user-agent pentru layout (fara m.site.com)
+- NU folosi JavaScript de tip if(isMobile) sau if(window.innerWidth < 768) pentru a schimba layoutul
+- NU crea componente duplicate MobileCard + DesktopCard — unifica-le intr-una cu CSS
+- NU scrie breakpoint-uri hardcodat in componente individuale
+- NU folosi inline styles pentru responsive
+
+---
+
+## Reguli stricte — FA intotdeauna:
+
+- Rezolva diferentele vizuale EXCLUSIV din CSS (media queries)
+- Importa breakpoint-urile din variabilele globale ale proiectului
+- Unifica componentele duplicate intr-una singura cu clase responsive
+- Foloseste clase .mobile-only si .desktop-only pentru continut diferentiat
+- Foloseste <picture> cu <source media> pentru imagini diferite pe mobile vs desktop
+
+---
+
+## Continut diferentiat mobile vs desktop
+
+Bannere:
+  .mobile-banner  → vizibil sub 1024px,  ascuns peste 1024px
+  .desktop-banner → ascuns sub 1024px,   vizibil peste 1024px
+
+Blocuri de continut:
+  .mobile-blocks  → display: block sub 768px,  display: none  peste 768px
+  .desktop-blocks → display: none  sub 768px,  display: flex  peste 768px (3 coloane)
+
+Butoane CTA:
+  .cta-mobile  → vizibil sub 768px  (ex: "Descarca aplicatia")
+  .cta-desktop → vizibil peste 768px (ex: "Deschide constructorul web")
+
+Imagini:
+  .img-mobile  → vizibil sub 768px,  ascuns peste 768px
+  .img-desktop → ascuns sub 768px,   vizibil peste 768px
+
+---
+
+## La orice modificare de layout sau navigatie
+
+Verifica INTOTDEAUNA ca functioneaza corect la:
+  - 375px  (iPhone SE)
+  - 768px  (iPad / tableta)
+  - 1024px (laptop mic — pragul critic)
+  - 1440px (desktop standard)
+
+Raporteaza orice conflict gasit INAINTE sa faci modificari.
+
+---
+
+## Audit initial (ruleaza la primul acces)
+
+Verifica si raporteaza:
+1. Exista redirectionari separate pentru mobil in router sau server?
+2. Exista componente duplicate cu sufixe Mobile/Desktop?
+3. Care sunt breakpoint-urile folosite in prezent?
+4. Exista logica JS de detectare a dispozitivului pentru layout?
+5. TabBar de jos exista si este corect ascuns pe desktop?
+6. MobileNavigation si DesktopNavigation sunt componente separate?
+7. Exista imagini/bannere duplicate pentru mobile vs desktop?

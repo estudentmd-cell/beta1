@@ -207,7 +207,10 @@ export default function CabinetOrders({ onNavigate }) {
         const config = project.productConfig || {};
         const step = getStepFromStatus(project.status);
         const isDraft = project.status === 'draft';
+        const isAwaitingPayment = project.status === 'awaiting_payment';
         const isPendingApproval = project.status === 'pending_approval' || project.status === 'pending_client_approval';
+        const isDesignerWorking = ['paid_pending_designer', 'paid_pending_verification', 'designer_working', 'revision_requested'].includes(project.status);
+        const isFinal = ['in_print', 'shipped', 'delivered'].includes(project.status);
         const price = project.priceTotal || config.basePrice || 0;
         const isOffer = config.isOffer;
         const offerOldPrice = config.offerOldPrice || 0;
@@ -289,22 +292,30 @@ export default function CabinetOrders({ onNavigate }) {
               <p className="text-[10px] text-[#B0A89E] mt-0.5">{formatDate(project.createdAt)}</p>
 
               {/* ── ACTION BUTTON — single, compact ── */}
-              <div className="mt-2">
-                {isDraft ? (
+              <div className="mt-2 space-y-1.5">
+                {isDraft || isAwaitingPayment ? (
+                  /* Draft or awaiting payment — client can edit freely */
                   <button onClick={() => handleContinue(project)}
                     className="w-full h-[36px] bg-[#1C1C1E] text-white rounded-lg text-[12px] font-bold active:scale-[0.97] transition-all">
-                    Editează
-                  </button>
-                ) : isPendingApproval ? (
-                  <button onClick={() => { useProjectStore.setState({ approvalEditMode: false }); handleContinue(project); }}
-                    className="w-full h-[36px] bg-[#3D6B5E] text-white rounded-lg text-[12px] font-bold active:scale-[0.97] transition-all">
-                    Verifică
+                    {isDraft ? 'Editeaza' : 'Modifica comanda'}
                   </button>
                 ) : (
-                  <button onClick={() => { handleContinue(project); navigate(`/app/editor/${project.id}?readOnly=true`); }}
-                    className="w-full h-[36px] bg-[#F2F2F7] rounded-lg text-[12px] font-semibold text-[#3D6B5E] active:bg-[#E5E5EA] transition-colors">
-                    Vezi
-                  </button>
+                  /* Any other status — locked, read only + contact us */
+                  <>
+                    <button onClick={() => { handleContinue(project); navigate(`/app/editor/${project.id}?readOnly=true`); }}
+                      className="w-full h-[36px] bg-[#F2F2F7] rounded-lg text-[12px] font-semibold text-[#3D6B5E] active:bg-[#E5E5EA] transition-colors">
+                      Vezi albumul
+                    </button>
+                    {!isFinal && (
+                      <a href="tel:+37360595984"
+                        className="w-full h-[36px] flex items-center justify-center gap-1.5 bg-white border border-[#E8E4DB] rounded-lg text-[11px] font-medium text-[#888] active:bg-[#F5F3F0] transition-colors">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        Contacteaza-ne pentru modificari
+                      </a>
+                    )}
+                  </>
                 )}
               </div>
             </div>

@@ -15,6 +15,7 @@ import MobileEditorTopbar from '../components/editor/MobileEditorTopbar';
 import MobileBottomToolbar from '../components/editor/MobileBottomToolbar';
 const WelcomeUploadPopup = lazy(() => import('../components/editor/WelcomeUploadPopup'));
 const AlbumPreviewModal = lazy(() => import('../components/editor/AlbumPreviewModal'));
+import PhotosReadyPopup from '../components/editor/PhotosReadyPopup';
 import MobileVerticalEditor from '../components/editor/MobileVerticalEditor';
 import { createProjectSnapshot, saveProject, generateId } from '../utils/projectStorage';
 import { updateOrderStatus } from '../utils/adminData';
@@ -103,6 +104,7 @@ export default function EditorScreen() {
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showAlbumPreview, setShowAlbumPreview] = useState(false);
+  const [showPhotosReady, setShowPhotosReady] = useState(false);
   const welcomeShownRef = useRef(false);
   const navigate = useNavigate();
 
@@ -330,34 +332,7 @@ export default function EditorScreen() {
     setIsRestoring(false);
   }, [urlProjectId]);
 
-  // ── POST-RESTORE POPUP — show uploadFlow when returning to project with photos but none arranged ──
-  useEffect(() => {
-    if (readOnly || isRestoring) return;
-    // Wait 2 seconds after restore for state to settle
-    const timer = setTimeout(() => {
-      const { photos, spreads, isUploading: uploading } = useEditorStore.getState();
-      if (uploading) return; // Upload in progress — the upload trigger handles this
-      if (photos.length < 5) return; // Too few photos
-      // Check if any spread has photos placed
-      const hasArranged = spreads.some(s =>
-        (s.full?.photos?.length > 0) || (s.left?.photos?.length > 0) || (s.right?.photos?.length > 0)
-      );
-      if (hasArranged) return; // Already arranged
-      // Check if already shown this session
-      const projectId = useProjectStore.getState().currentProjectId;
-      const key = `uploadflow_restored_${projectId}`;
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, '1');
-      // Clear the upload flow flag so the popup can show after restore
-      sessionStorage.removeItem(`uploadflow_shown_${projectId}`);
-      // Open uploadFlow popup (not autoFill) — user sees their photo count and arrangement options
-      const { activeModal } = useUIStore.getState();
-      if (!activeModal) {
-        useUIStore.getState().openModal('uploadFlow');
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [isRestoring, readOnly]);
+  // ── POST-RESTORE — no forced popup (like Periodica: photos appear in gallery, client decides) ──
 
   // ── SAVE SYSTEM — Canva-style: save on every completed action ──
   useEffect(() => {
@@ -603,45 +578,16 @@ export default function EditorScreen() {
   const prevUploading = useRef(false);
   const uploadStartTimerRef = useRef(null);
   useEffect(() => {
-    // Upload a început
-    if (isUploading && !prevUploading.current && photos.length > 0) {
-      const { activeModal } = useUIStore.getState();
-      // Nu deschide dacă alt popup e deja activ (inclusiv welcome)
-      if (!activeModal && !showWelcome) {
-        // Clear any stale timer before setting a new one
-        if (uploadStartTimerRef.current) clearTimeout(uploadStartTimerRef.current);
-        uploadStartTimerRef.current = setTimeout(() => {
-          uploadStartTimerRef.current = null;
-          useUIStore.getState().openModal('uploadFlow');
-        }, 1500);
-      }
-    }
-    // Upload s-a terminat — dacă popup-ul nu e deschis, deschide-l
-    if (!isUploading && prevUploading.current && photos.length >= 5) {
-      // Cancel the start timer if upload finished before it fired
-      if (uploadStartTimerRef.current) {
-        clearTimeout(uploadStartTimerRef.current);
-        uploadStartTimerRef.current = null;
-      }
-      const { activeModal } = useUIStore.getState();
-      if (activeModal !== 'uploadFlow') {
-        const projectId = useProjectStore.getState().currentProjectId;
-        const key = `uploadflow_shown_${projectId}`;
-        if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, '1');
-          const hasArranged = spreads.some(s =>
-            (s.full?.photos?.length > 0) || (s.left?.photos?.length > 0) || (s.right?.photos?.length > 0)
-          );
-          if (!hasArranged) {
-            setTimeout(() => useUIStore.getState().openModal('uploadFlow'), 800);
-          }
-        }
+    // Show friendly guide popup once after first upload completes (not forced, just helpful)
+    if (!isUploading && prevUploading.current && photos.length >= 3) {
+      const projectId = useProjectStore.getState().currentProjectId;
+      const key = `photos_ready_shown_${projectId}`;
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        setTimeout(() => setShowPhotosReady(true), 500);
       }
     }
     prevUploading.current = isUploading;
-    return () => {
-      if (uploadStartTimerRef.current) clearTimeout(uploadStartTimerRef.current);
-    };
   }, [isUploading, photos.length, showWelcome]);
 
   return (
@@ -947,6 +893,8 @@ export default function EditorScreen() {
       {!readOnly && (
         <div className="lg:hidden">
           <MobileEditorTopbar onSave={handleSave} />
+          {/* Spacer for fixed topbar */}
+          <div className="h-12" />
         </div>
       )}
 
@@ -1045,6 +993,14 @@ export default function EditorScreen() {
 
       {/* Designer nudge — appears once after uploading 5+ photos */}
       <DesignerNudge />
+
+      {/* Photos ready guide — shows once after first upload */}
+      {showPhotosReady && (
+        <PhotosReadyPopup
+          photoCount={photos.length}
+          onClose={() => setShowPhotosReady(false)}
+        />
+      )}
 
       {/* Album preview modal — unified for mobile and desktop */}
       {showAlbumPreview && (
