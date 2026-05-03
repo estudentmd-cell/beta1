@@ -1,34 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import useAuthStore from '../../stores/useAuthStore';
-import { Home, LayoutGrid, HelpCircle, Tag } from 'lucide-react';
-// Offers loaded async from Firestore
 
 const TABS = [
-  {
-    id: 'home',
-    label: 'Acasă',
-    to: '/',
-    match: (p) => p === '/' || p === '/pagini' || p.startsWith('/albume'),
-  },
-  {
-    id: 'colectie',
-    label: 'Colecție',
-    to: '/colectie/toate',
-    match: (p) => p.startsWith('/colectie'),
-  },
-  {
-    id: 'cumcomand',
-    label: 'Cum comand',
-    to: '/#cum-functioneaza',
-    match: (p) => false,
-  },
-  {
-    id: 'preturi',
-    label: 'Prețuri',
-    to: '/preturi',
-    match: (p) => p === '/preturi',
-  },
+  { id: 'home', label: 'Acasa', to: '/', match: (p) => p === '/' },
+  { id: 'catalog', label: 'Catalog', to: '/colectie/toate', match: (p) => p.startsWith('/colectie') },
+  { id: 'proiecte', label: 'Proiecte', to: '/app/cabinet', match: (p) => p === '/app/cabinet' },
+  { id: 'cos', label: 'Cos', to: '/app/checkout', match: (p) => p.startsWith('/app/checkout') },
+  { id: 'profil', label: 'Profil', to: '/app/cabinet?tab=account', match: (p) => p === '/app/cabinet' && typeof window !== 'undefined' && window.location.search.includes('tab=account') },
 ];
 
 function TabIcon({ id, active }) {
@@ -42,7 +20,7 @@ function TabIcon({ id, active }) {
           <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" fill={active ? stroke : 'none'} />
         </svg>
       );
-    case 'colectie':
+    case 'catalog':
       return (
         <svg className={cls} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1" fill={active ? stroke : 'none'} />
@@ -51,14 +29,21 @@ function TabIcon({ id, active }) {
           <rect x="14" y="14" width="7" height="7" rx="1" fill={active ? stroke : 'none'} />
         </svg>
       );
-    case 'incepe':
+    case 'proiecte':
       return (
         <svg className={cls} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" fill={active ? stroke : 'none'} />
-          <path d="M12 8v8M8 12h8" stroke={active ? '#fff' : stroke} strokeWidth="2" />
+          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" fill={active ? stroke : 'none'} />
         </svg>
       );
-    case 'cont':
+    case 'cos':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="9" cy="21" r="1" fill={stroke} />
+          <circle cx="20" cy="21" r="1" fill={stroke} />
+          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+        </svg>
+      );
+    case 'profil':
       return (
         <svg className={cls} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -73,32 +58,23 @@ function TabIcon({ id, active }) {
 export default function MobileTabBar() {
   const location = useLocation();
   const { isAdmin } = useAuthStore();
-  const [offersCount, setOffersCount] = useState(0);
-
-  useEffect(() => {
-    import('../../utils/offers').then(m => m.getActiveOffersAsync()).then(o => setOffersCount(o.length)).catch(() => {});
-  }, []);
 
   const hide =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/app/editor') ||
     location.pathname.startsWith('/app/product') ||
-    location.pathname.startsWith('/app/cabinet');
+    location.pathname.startsWith('/app/checkout');
 
   if (hide || isAdmin) return null;
 
-  const LUCIDE_ICONS = { home: Home, colectie: LayoutGrid, cumcomand: HelpCircle, preturi: Tag };
-
   return (
-    <nav role="navigation" aria-label="Navigare principală" className="fixed bottom-0 left-0 right-0 z-50 sm:hidden"
+    <nav role="navigation" aria-label="Navigare principala" className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="bg-white/85 backdrop-blur-xl border-t border-black/[0.06]">
         <div className="mobile-nav-menu" style={{ '--nav-accent': '#1c1c1c' }}>
           {TABS.map((tab) => {
             const active = tab.match(location.pathname);
-            const hasOfferBadge = false;
-            const Icon = LUCIDE_ICONS[tab.id];
             return (
               <Link
                 key={tab.id}
@@ -108,13 +84,8 @@ export default function MobileTabBar() {
                 className={`mobile-nav-menu__item ${active ? 'active' : ''}`}
                 style={{ textDecoration: 'none' }}
               >
-                <div className="mobile-nav-menu__icon relative">
-                  <Icon className="mobile-nav-menu__svg" />
-                  {hasOfferBadge && (
-                    <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] rounded-full bg-[#FF3B30] text-white text-[9px] font-bold flex items-center justify-center px-1">
-                      {offersCount}
-                    </span>
-                  )}
+                <div className="mobile-nav-menu__icon">
+                  <TabIcon id={tab.id} active={active} />
                 </div>
                 <strong className={`mobile-nav-menu__text ${active ? 'active' : ''}`}>
                   {tab.label}

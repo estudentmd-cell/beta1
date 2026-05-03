@@ -194,20 +194,7 @@ export default function EditorTopbar({ onSave }) {
         if (isApproval) return null;
         return (
           <button
-            onClick={() => {
-              const { chosenPath } = useProjectStore.getState();
-              const { spreads: sp } = useEditorStore.getState();
-              const hasPhotosOnSpreads = sp.some(s => s.photos?.length > 0 || s.full || s.left || s.right);
-
-              if (chosenPath !== 'designer' && !hasPhotosOnSpreads) {
-                openModal('servicePicker');
-                return;
-              }
-
-              if (onSave) onSave();
-              import('../../utils/errorTracker').then(({ trackStep }) => trackStep('click_order')).catch(() => {});
-              navigate('/app/checkout');
-            }}
+            onClick={() => window.dispatchEvent(new Event('editorOrder'))}
             className="flex items-center gap-1.5 h-8 px-4 rounded-lg text-[12px] font-semibold text-white bg-[#1C1C1E] hover:bg-[#333] active:scale-[0.97] transition-all"
             style={{ fontFamily: 'Outfit, sans-serif' }}
           >
@@ -217,6 +204,7 @@ export default function EditorTopbar({ onSave }) {
           </button>
         );
       })()}
+
     </div>
   );
 }

@@ -5,6 +5,7 @@ import useProjectStore from '../../stores/useProjectStore';
 import { computeRects } from '../../utils/layoutEngine';
 import { getDimensions } from '../../utils/dimensions';
 import { getCoverDimensions } from '../../utils/coverDimensions';
+import { FrameImage, CameraIcon } from './SpreadCanvas';
 
 /* ── Frame action bar — fixed bottom, mobile native: Mută + Șterge ── */
 function FrameActionBar({ leafId, spreadIdx }) {
@@ -383,7 +384,7 @@ function CoverPhotoFrame({ frame, photo, crop, fx, fy, fw, fh, borderPx, isSelec
 }
 
 /* ── Mini canvas for a single spread ── */
-const SpreadCanvas = memo(function SpreadCanvas({ spread, spreadIdx, canvasW, dragSwap }) {
+const MobileSpreadCard = memo(function MobileSpreadCard({ spread, spreadIdx, canvasW, dragSwap }) {
   const { productConfig } = useProjectStore.getState();
   const formatStr = productConfig?.format || '20×20';
   const [fW, fH] = formatStr.split('×').map(Number);
@@ -800,7 +801,7 @@ export default function MobileVerticalEditor({ isApprovalMode = false }) {
 
             {/* Canvas */}
             <div className="flex justify-center">
-              <SpreadCanvas spread={spread} spreadIdx={i} canvasW={canvasW - 24} dragSwap={dragSwap} />
+              <MobileSpreadCard spread={spread} spreadIdx={i} canvasW={canvasW - 24} dragSwap={dragSwap} />
             </div>
 
             {/* Controls — centered under spread */}

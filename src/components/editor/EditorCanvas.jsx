@@ -6,75 +6,8 @@ import { computeRects, computeSeps, proTemplateToRects } from '../../utils/layou
 import TemplatePicker from './TemplatePicker';
 import { getDimensions } from '../../utils/dimensions';
 import { getCoverDimensions } from '../../utils/coverDimensions';
-
-/* ── Shimmer placeholder for loading frames ── */
-function FrameShimmer() {
-  return (
-    <div className="w-full h-full bg-gradient-to-br from-[#F5F1EB] to-[#E8E4DB] relative overflow-hidden">
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite]"
-        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)' }} />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full bg-white/40 flex items-center justify-center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0A89E" strokeWidth="1.5">
-            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Frame image with shimmer-to-fade transition (no white flash) ── */
-function FrameImage({ src, crop }) {
-  const [loaded, setLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(null);
-
-  useEffect(() => {
-    if (!src) return;
-    if (src === currentSrc) return;
-    setLoaded(false);
-    const img = new Image();
-    img.onload = async () => {
-      try { await img.decode(); } catch {}
-      setCurrentSrc(src);
-      requestAnimationFrame(() => setLoaded(true));
-    };
-    img.onerror = () => { setCurrentSrc(src); setLoaded(true); };
-    img.src = src;
-  }, [src, currentSrc]);
-
-  return (
-    <div className="w-full h-full relative">
-      {/* Shimmer stays behind until image loads */}
-      {!loaded && <FrameShimmer />}
-      {currentSrc && (
-        <img src={currentSrc} alt=""
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-          decoding="async"
-          style={{
-            objectPosition: `${crop?.opx || 50}% ${crop?.opy || 50}%`,
-            opacity: loaded ? 1 : 0,
-            transition: 'opacity 0.4s ease-out',
-          }}
-          draggable={false} />
-      )}
-    </div>
-  );
-}
-
-/* Camera icon for empty frames */
-function CameraIcon({ size = 24 }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-1">
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#B0AAA2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </svg>
-      <span className="text-[8px] text-[#B0AAA2] font-bold">+</span>
-    </div>
-  );
-}
+import { FrameImage, FrameShimmer, CameraIcon, BoundsHandles as SpreadBoundsHandles } from './SpreadCanvas';
+import SpreadCanvas from './SpreadCanvas';
 
 // ═══ FRAME OVERLAY (Mută / Schimbă / Scoate) — premium design ═══
 function FrameOverlay({ leafId }) {
@@ -914,7 +847,7 @@ export default function EditorCanvas() {
     autoLayoutCurrent, toggleMode,
     boundsEditing, startBoundsEdit, stopBoundsEdit, updatePageBounds,
     selectedFrame, swapSource, panActive, panLeaf,
-    clearSelection, cancelSwap, guides,
+    clearSelection, cancelSwap, guides, readOnly, _tick: tick,
   } = useEditorStore();
 
   const spread = spreads[currentSpread];
@@ -1039,115 +972,34 @@ export default function EditorCanvas() {
 
       {/* ═══ CANVAS ═══ */}
       <div className="relative mt-14 mb-2" style={{ width: canvasW, height: canvasH }}>
+
+        {/* ═══ NON-COVER: SpreadCanvas (unified render engine with separators) ═══ */}
+        {!spread?.isCover && (
+          <SpreadCanvas
+            spread={spread}
+            canvasW={canvasW} canvasH={canvasH} halfW={halfW} spineW={spineW} gapPx={gapPx}
+            formatStr={formatStr} productSlug={productConfig?.slug} initialPages={productConfig?.initialPages}
+            selectedFrame={selectedFrame} swapSource={swapSource}
+            panActive={panActive} panLeaf={panLeaf}
+            boundsEditing={boundsEditing} readOnly={readOnly} tick={tick}
+            onFrameClick={(leafId) => useEditorStore.getState().selectFrame(leafId)}
+            onFrameDrop={(leafId, photoId) => useEditorStore.getState().placePhotoInFrame(photoId, leafId)}
+            onEmptyFrameTap={(leafId) => useEditorStore.getState().selectFrame(leafId)}
+            onCanvasClick={() => { if (boundsEditing) stopBoundsEdit(); clearSelection(); }}
+            onBoundsChange={(section, nb) => updatePageBounds(currentSpread, section, nb)}
+            onBoundsDoubleClick={(section) => { updatePageBounds(currentSpread, section, { top: 0, right: 0, bottom: 0, left: 0 }); stopBoundsEdit(); }}
+            onSeparatorDrag={(node, newRatio) => useEditorStore.getState().updateRatio(node, newRatio)}
+            onSeparatorDragStart={() => useEditorStore.getState().pushUndoForSep()}
+            onCropUpdate={(leafId, opx, opy) => useEditorStore.getState().updateCropOffset(leafId, opx, opy)}
+            onPanEnd={() => useEditorStore.getState().exitPan()}
+            renderFrameOverlay={(leafId) => selectedFrame === leafId ? <FrameOverlay leafId={leafId} /> : null}
+          />
+        )}
+
+        {/* ═══ COVER: interactive editing (kept separate — has drag/resize/text editing) ═══ */}
+        {spread?.isCover && (
         <div data-canvas-bg="true" className="absolute inset-0 bg-white rounded-sm"
-          style={{ boxShadow: '0 4px 20px rgba(44,37,32,.15), 0 1px 4px rgba(44,37,32,.1)' }}
-          onClick={(e) => { if (e.target === e.currentTarget && !spread?.isCover && hasPhotos) { const r=e.currentTarget.getBoundingClientRect(); const side=isSpreadMode?'full':(e.clientX-r.left<r.width/2?'left':'right'); if(boundsEditing===side) stopBoundsEdit(); else { startBoundsEdit(side); clearSelection(); } } }}>
-
-          <div className={`absolute top-0 bottom-0 z-[5] ${isSpreadMode ? 'bg-[#d6d0c8]' : 'bg-[#c8c0b6]'}`}
-            style={{ left: halfW, width: spineW }} />
-
-          {guides && (
-            <>
-              <div className="absolute border-2 border-dashed border-red-400/40 pointer-events-none z-[15] rounded-sm" style={{ inset: -bleed }} />
-              <div className="absolute border border-dashed border-cyan/40 pointer-events-none z-[15]" style={{ inset: safe }} />
-              {isSpreadMode && <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 bg-orange-300/10 pointer-events-none z-[5]" />}
-            </>
-          )}
-
-          {/* ═══ GUIDES — always visible for all products (bleed + cotor from admin) ═══ */}
-          {!spread?.isCover && productConfig?.slug && (() => {
-            const adminDims = getDimensions(productConfig?.slug, formatStr);
-            const cotorMm = adminDims?.spread?.cotor || 5;
-            const bleedMm = adminDims?.spread?.bleed || 3;
-            const cotorPx = Math.round((cotorMm / (fW * 20)) * canvasW); // cotor width in canvas px
-            const bleedPx = Math.round((bleedMm / (fH * 10)) * canvasH);
-            const safePx = bleedPx + Math.round(3 * (canvasH / (fH * 10))); // 3mm extra safe
-
-            return (
-              <>
-                {/* Cotor zone — center binding area (DO NOT place important content here) */}
-                <div className="absolute pointer-events-none z-[12]" style={{
-                  left: halfW - cotorPx / 2, top: 0, width: cotorPx + spineW, height: canvasH,
-                  background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(239,68,68,0.06) 3px, rgba(239,68,68,0.06) 6px)',
-                  borderLeft: '1px dashed rgba(239,68,68,0.3)',
-                  borderRight: '1px dashed rgba(239,68,68,0.3)',
-                }}>
-                </div>
-
-                {/* Bleed lines — top, bottom, left, right */}
-                <div className="absolute pointer-events-none z-[11]" style={{
-                  left: 0, top: 0, right: 0, height: bleedPx,
-                  borderBottom: '1px dashed rgba(239,68,68,0.25)',
-                }} />
-                <div className="absolute pointer-events-none z-[11]" style={{
-                  left: 0, bottom: 0, right: 0, height: bleedPx,
-                  borderTop: '1px dashed rgba(239,68,68,0.25)',
-                }} />
-                <div className="absolute pointer-events-none z-[11]" style={{
-                  left: 0, top: 0, bottom: 0, width: bleedPx,
-                  borderRight: '1px dashed rgba(239,68,68,0.25)',
-                }} />
-                <div className="absolute pointer-events-none z-[11]" style={{
-                  right: 0, top: 0, bottom: 0, width: bleedPx,
-                  borderLeft: '1px dashed rgba(239,68,68,0.25)',
-                }} />
-
-                {/* Safe zone — inner rectangle */}
-                <div className="absolute pointer-events-none z-[11] border border-dashed border-green-400/20 rounded-sm" style={{
-                  left: safePx, top: safePx, right: safePx, bottom: safePx,
-                }} />
-
-                {/* Page separator line */}
-                <div className="absolute pointer-events-none z-[11]" style={{
-                  left: halfW, top: 0, width: spineW, height: canvasH,
-                  background: 'rgba(0,0,0,0.08)',
-                }} />
-
-              </>
-            );
-          })()}
-
-          {/* Regular spreads use layout engine — cover uses CoverLayout instead */}
-          {!spread?.isCover && (() => {
-            // Inset photos inside bleed + cotor safe zone (all products)
-            const sDims = getDimensions(productConfig?.slug, formatStr);
-            const bMm = sDims?.spread?.bleed || 3;
-            const cMm = sDims?.spread?.cotor || 0; // groase has 0 cotor
-            // Use fraction-based bleed (no rounding) — ensures identical frame aspect ratios on any screen size
-            const bFrac = bMm / (fH * 10);
-            const cFrac = (cMm / 2) / (fW * 10);
-            const bH = canvasH * bFrac;
-            const bW = canvasW * bFrac;
-            const cW = (canvasW / 2) * cFrac;
-
-            let lOffX = bW, lOffY = bH, lW = halfW - bW - cW, lH = canvasH - bH * 2;
-            let rOffX = halfW + spineW + cW, rOffY = bH, rW = halfW - cW - bW, rH = canvasH - bH * 2;
-
-            return isSpreadMode ? (
-              <>
-                <PageFrames tree={spread?.full?.tree} offsetX={bW} offsetY={bH}
-                  pageW={canvasW - bW * 2} pageH={canvasH - bH * 2} gapPx={gapPx}
-                  selectedFrame={selectedFrame} swapSource={swapSource} panActive={panActive} panLeaf={panLeaf}
-                  pageBounds={spread?.full?.bounds}
-                  proTemplate={spread?.full?._proTemplate} spreadW={canvasW - bW * 2} spreadH={canvasH - bH * 2} />
-                {boundsEditing === 'full' && <BoundsHandles offsetX={bW} offsetY={bH} pageW={canvasW-bW*2} pageH={canvasH-bH*2} bounds={spread?.full?.bounds} onDrag={(nb)=>updatePageBounds(currentSpread,'full',nb)} onDoubleClick={()=>{updatePageBounds(currentSpread,'full',{top:0,right:0,bottom:0,left:0});stopBoundsEdit();}} />}
-              </>
-            ) : (
-              <>
-                <PageFrames tree={spread?.left?.tree} offsetX={lOffX} offsetY={lOffY}
-                  pageW={lW} pageH={lH} gapPx={gapPx}
-                  selectedFrame={selectedFrame} swapSource={swapSource} panActive={panActive} panLeaf={panLeaf}
-                  pageBounds={spread?.left?.bounds}
-                  proTemplate={spread?.left?._proTemplate} spreadW={lW} spreadH={lH} />
-                {boundsEditing === 'left' && <BoundsHandles offsetX={lOffX} offsetY={lOffY} pageW={lW} pageH={lH} bounds={spread?.left?.bounds} onDrag={(nb)=>updatePageBounds(currentSpread,'left',nb)} onDoubleClick={()=>{updatePageBounds(currentSpread,'left',{top:0,right:0,bottom:0,left:0});stopBoundsEdit();}} />}
-                <PageFrames tree={spread?.right?.tree} offsetX={rOffX} offsetY={rOffY}
-                  pageW={rW} pageH={rH} gapPx={gapPx}
-                  selectedFrame={selectedFrame} swapSource={swapSource} panActive={panActive} panLeaf={panLeaf}
-                  pageBounds={spread?.right?.bounds} />
-                {boundsEditing === 'right' && <BoundsHandles offsetX={rOffX} offsetY={rOffY} pageW={rW} pageH={rH} bounds={spread?.right?.bounds} onDrag={(nb)=>updatePageBounds(currentSpread,'right',nb)} onDoubleClick={()=>{updatePageBounds(currentSpread,'right',{top:0,right:0,bottom:0,left:0});stopBoundsEdit();}} />}
-              </>
-            );
-          })()}
+          style={{ boxShadow: '0 4px 20px rgba(44,37,32,.15), 0 1px 4px rgba(44,37,32,.1)' }}>
 
           {spread?.isCover && (() => {
             /* ═══ COVER — real proportions: back + spine + front ═══ */
@@ -1349,33 +1201,8 @@ export default function EditorCanvas() {
             );
           })()}
 
-          {!hasPhotos && !spread?.isCover && !spread?.coverFrames && (() => {
-            /* ═══ REGULAR SPREAD EMPTY STATE — gray frames inside safe zone ═══ */
-            const eDims = getDimensions(productConfig?.slug, formatStr);
-            const eBMm = eDims?.spread?.bleed || 3;
-            const eCMm = eDims?.spread?.cotor || 0;
-            const eMmToH = canvasH / (fH * 10);
-            const eMmToW = canvasW / (fW * 20);
-            const eBH = Math.round(eBMm * eMmToH);
-            const eBW = Math.round(eBMm * eMmToW);
-            const eCW = Math.round((eCMm / 2) * eMmToW);
-            const eLOffX = eBW, eLOffY = eBH, eLW = halfW - eBW - eCW, eLH = canvasH - eBH * 2;
-            const eROffX = halfW + spineW + eCW, eROffY = eBH, eRW = halfW - eCW - eBW, eRH = canvasH - eBH * 2;
-
-            return (
-              <div className="absolute inset-0 z-0">
-                <div className="absolute bg-[#E8E4DB] rounded-sm flex items-center justify-center"
-                  style={{ left: eLOffX, top: eLOffY, width: eLW, height: eLH }}>
-                  <CameraIcon size={32} />
-                </div>
-                <div className="absolute bg-[#E8E4DB] rounded-sm flex items-center justify-center"
-                  style={{ left: eROffX, top: eROffY, width: eRW, height: eRH }}>
-                  <CameraIcon size={32} />
-                </div>
-              </div>
-            );
-          })()}
         </div>
+        )}
       </div>
 
       {/* Prev/Next — desktop only */}

@@ -10,6 +10,7 @@ import AutoFillPopup from './components/editor/AutoFillPopup';
 import UploadFlowPopup from './components/editor/UploadFlowPopup';
 import PostArrangePopup from './components/editor/PostArrangePopup';
 import CoverGuardPopup from './components/editor/CoverGuardPopup';
+import MissingPhotosPopup from './components/editor/MissingPhotosPopup';
 import { createProjectSnapshot, saveProject } from './utils/projectStorage';
 import { trackAddToCart } from './utils/metaPixel';
 import { router } from './router';
@@ -123,9 +124,12 @@ function ModalContainer() {
     />;
     case 'coverGuard':    return <CoverGuardPopup
       hasCoverPhoto={modalData?.hasCoverPhoto || false}
-      hasCoverText={modalData?.hasCoverText || false}
       onGoToCover={() => { closeModal(); if (modalData?.goToCover) modalData.goToCover(); }}
-      onContinue={() => { fireAddToCart(); closeModal(); router.navigate('/app/checkout'); }}
+      onClose={closeModal}
+    />;
+    case 'missingPhotos': return <MissingPhotosPopup
+      missingPages={modalData?.missingPages || []}
+      onGoToPage={(idx) => { closeModal(); if (modalData?.goToPage) modalData.goToPage(idx); }}
       onClose={closeModal}
     />;
     // auth modal handled by GlobalAuthModal in main.jsx

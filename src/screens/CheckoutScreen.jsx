@@ -136,9 +136,8 @@ export default function CheckoutScreen() {
       };
 
       const orderId = resolvedProjectId;
-      // Generate unique order number: FC-XXXXX (timestamp-based, no duplicates)
-      const ts = Date.now().toString(36).toUpperCase().slice(-5);
-      const orderNumber = `FC-${ts}`;
+      // Generate order number: FC-XXXX (4 digits) — NU MODIFICA NICIODATĂ
+      const orderNumber = `FC-${String(Date.now()).slice(-4)}`;
       orderData.orderNumber = orderNumber;
       orderData.id = orderId;
 
@@ -238,6 +237,7 @@ export default function CheckoutScreen() {
         coverName: productConfig?.coverName || coverTemplate?.name || '',
         price: total,
         service: service === 'verify' ? 'Verificare' : 'Design complet',
+        orderType: service === 'verify' ? 'self' : 'designer',
       };
       try { localStorage.setItem('fc_last_order', JSON.stringify(confirmState)); } catch {}
 

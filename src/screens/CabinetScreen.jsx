@@ -45,8 +45,7 @@ const PAGE_MAP = {
 export default function CabinetScreen() {
   const navigate = useNavigate();
   const { clientName, clientEmail, user, authMethod, logout } = useAuthStore();
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-  const [activePage, setActivePage] = useState(isMobile ? 'account' : 'account');
+  const [activePage, setActivePage] = useState('account');
 
   const hasIdentity = !!(user?.uid && (authMethod === 'email_code' || authMethod === 'google'));
 

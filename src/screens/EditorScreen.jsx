@@ -14,6 +14,7 @@ import UploadProgressBar from '../components/editor/UploadProgressBar';
 import MobileEditorTopbar from '../components/editor/MobileEditorTopbar';
 import MobileBottomToolbar from '../components/editor/MobileBottomToolbar';
 const WelcomeUploadPopup = lazy(() => import('../components/editor/WelcomeUploadPopup'));
+const AlbumPreviewModal = lazy(() => import('../components/editor/AlbumPreviewModal'));
 import MobileVerticalEditor from '../components/editor/MobileVerticalEditor';
 import { createProjectSnapshot, saveProject, generateId } from '../utils/projectStorage';
 import { updateOrderStatus } from '../utils/adminData';
@@ -101,6 +102,7 @@ export default function EditorScreen() {
   const [showPhonePrompt, setShowPhonePrompt] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showAlbumPreview, setShowAlbumPreview] = useState(false);
   const welcomeShownRef = useRef(false);
   const navigate = useNavigate();
 
@@ -154,8 +156,6 @@ export default function EditorScreen() {
   const [photoPickerShown, setPhotoPickerShown] = useState(false);
   const fileInputRef = useRef(null);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-
   const openPhotoPicker = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -172,6 +172,13 @@ export default function EditorScreen() {
     const handler = () => setShowSavePopup(true);
     window.addEventListener('openSavePopup', handler);
     return () => window.removeEventListener('openSavePopup', handler);
+  }, []);
+
+  // Listen for album preview event (triggered by handleOrder after validation)
+  useEffect(() => {
+    const handler = () => setShowAlbumPreview(true);
+    window.addEventListener('openAlbumPreview', handler);
+    return () => window.removeEventListener('openAlbumPreview', handler);
   }, []);
 
   // Load Google Fonts + sync custom fonts from Firestore
@@ -288,8 +295,13 @@ export default function EditorScreen() {
       }
     }
 
-    // If URL has a projectId and it's different from current — load from Firestore ONLY
-    if (urlProjectId && urlProjectId !== storeProjectId) {
+    // Load from Firestore if:
+    // 1. URL has a projectId different from store (navigating to another project)
+    // 2. URL matches store but editor has no photos (page refresh — store is empty)
+    const editorEmpty = useEditorStore.getState().photos.length === 0;
+    const shouldLoadFromFirestore = urlProjectId && (urlProjectId !== storeProjectId || editorEmpty);
+
+    if (shouldLoadFromFirestore) {
       // Clear old project data immediately — prevents stale photos showing
       // _dirty stays false — prevents auto-save from overwriting Firestore while loading
       useEditorStore.setState({
@@ -441,15 +453,65 @@ export default function EditorScreen() {
     };
   }, []);
 
-  const doSave = async () => {
+  const doSave = async (silent = false) => {
     const editorState = useEditorStore.getState();
     const projectState = useProjectStore.getState();
     const snapshot = createProjectSnapshot(projectIdRef.current, projectState, editorState, useAuthStore.getState());
     await saveProject(snapshot);
-    addToast('Proiect salvat!');
+    if (!silent) addToast('Proiect salvat!');
     const { clientName: cn, isAdmin, user: authUser } = useAuthStore.getState();
     const userName = authUser?.displayName || cn || 'Client';
     logProjectSaved(projectIdRef.current, userName, isAdmin ? 'admin' : 'customer');
+  };
+
+  // ── Unified order flow — IDENTICAL on mobile and desktop ──
+  const handleOrder = async () => {
+    // Block if uploading
+    if (useEditorStore.getState().isUploading) {
+      addToast('Pozele se incarca — asteapta putin');
+      return;
+    }
+    const { chosenPath } = useProjectStore.getState();
+    const { spreads } = useEditorStore.getState();
+    const hasPhotosOnSpreads = spreads.some(s => s.photos?.length > 0 || s.full || s.left || s.right);
+
+    if (chosenPath !== 'designer' && !hasPhotosOnSpreads) {
+      useUIStore.getState().openModal('servicePicker');
+      return;
+    }
+
+    import('../utils/errorTracker').then(({ trackStep }) => trackStep('click_order')).catch(() => {});
+
+    // Photo guard — check ALL pages for missing photos (like Periodica: single list)
+    if (chosenPath !== 'designer') {
+      const missingPages = [];
+      spreads.forEach((sp, idx) => {
+        if (sp.isCover) {
+          const hasCoverPhoto = !!(sp.coverFrames?.some(f => f.photo) || sp.full?.photos?.length > 0);
+          if (!hasCoverPhoto) missingPages.push({ idx, label: 'Coperta' });
+        } else {
+          const hasPhotos = sp.photos?.length > 0 || sp.full?.photos?.length > 0 || sp.left?.photos?.length > 0 || sp.right?.photos?.length > 0;
+          if (!hasPhotos) {
+            const pageNum = spreads[0]?.isCover ? (idx) * 2 - 1 : idx * 2;
+            missingPages.push({ idx, label: `Pag. ${Math.max(1, pageNum)}-${Math.max(2, pageNum + 1)}` });
+          }
+        }
+      });
+      if (missingPages.length > 0) {
+        useUIStore.getState().openModal('missingPhotos', {
+          missingPages,
+          goToPage: (spreadIdx) => {
+            useEditorStore.getState().goToSpread(spreadIdx);
+            useUIStore.getState().closeModal();
+          },
+        });
+        return;
+      }
+    }
+
+    // Show preview instantly, save silently in background (no toast, no blocking)
+    window.dispatchEvent(new Event('openAlbumPreview'));
+    doSave(true).catch(() => {});
   };
 
   const handleSave = async () => {
@@ -466,6 +528,13 @@ export default function EditorScreen() {
     }
     await doSave();
   };
+
+  // Listen for unified order event from desktop topbar
+  useEffect(() => {
+    const handler = () => handleOrder();
+    window.addEventListener('editorOrder', handler);
+    return () => window.removeEventListener('editorOrder', handler);
+  }, []);
 
   // Auto-save after returning from login/register
   useEffect(() => {
@@ -869,18 +938,20 @@ export default function EditorScreen() {
         </Suspense>
       )}
 
-      {/* ── DESKTOP TOPBAR ── */}
+      {/* ── TOPBAR — desktop version hidden on mobile, mobile version hidden on desktop ── */}
       {!readOnly && (
-        <div className="hidden sm:block">
+        <div className="hidden lg:block">
           <EditorTopbar onSave={handleSave} />
         </div>
       )}
-
-      {/* ── MOBILE TOPBAR ── */}
-      {!readOnly && <MobileEditorTopbar onSave={handleSave} />}
+      {!readOnly && (
+        <div className="lg:hidden">
+          <MobileEditorTopbar onSave={handleSave} />
+        </div>
+      )}
 
       {/* ── DESKTOP LAYOUT ── */}
-      <div className="hidden sm:flex flex-1 min-h-0">
+      <div className="hidden lg:flex flex-1 min-h-0">
         {!readOnly && <EditorSidebar onOpenLightbox={(idx) => setLightboxIdx(idx)} />}
         <div className="flex-1 flex flex-col min-w-0">
           <EditorCanvas />
@@ -888,8 +959,8 @@ export default function EditorScreen() {
         </div>
       </div>
 
-      {/* ── MOBILE LAYOUT — vertical scroll through all spreads ── */}
-      <div className="flex flex-col flex-1 min-h-0 sm:hidden relative">
+      {/* ── MOBILE LAYOUT ── */}
+      <div className="flex flex-col flex-1 min-h-0 lg:hidden relative">
         {/* Hidden file input — auto-triggered on first visit */}
         <input
           ref={fileInputRef}
@@ -964,63 +1035,29 @@ export default function EditorScreen() {
         )}
 
         {/* Bottom toolbar — hidden during empty state */}
-        {mobileShowEditor && <MobileBottomToolbar onSave={handleSave} onOrder={async () => {
-          // Blochează checkout dacă upload e în curs
-          if (useEditorStore.getState().isUploading) {
-            useUIStore.getState().addToast?.('Pozele se încarcă — așteaptă puțin');
-            return;
-          }
-          const { chosenPath } = useProjectStore.getState();
-          const { spreads } = useEditorStore.getState();
-          const hasPhotosOnSpreads = spreads.some(s => s.photos?.length > 0 || s.full || s.left || s.right);
-
-          if (chosenPath !== 'designer' && !hasPhotosOnSpreads) {
-            useUIStore.getState().openModal('servicePicker');
-            return;
-          }
-
-          import('../utils/errorTracker').then(({ trackStep }) => trackStep('click_order')).catch(() => {});
-
-          // ── Cover guard — verifică dacă coperta e completă ──
-          const { chosenPath: cp2 } = useProjectStore.getState();
-          if (cp2 !== 'designer') {
-            const coverSpread = spreads.find(s => s.isCover);
-            const hasCoverPhoto = !!(coverSpread?.coverFrames?.some(f => f.photo) || coverSpread?.full?.photos?.length > 0);
-            const coverTexts = coverSpread?.coverTexts || [];
-            const hasCoverText = coverTexts.some(t => t.text && t.text !== 'Text' && t.text !== t.placeholder && t.text.trim().length > 2);
-            if (!hasCoverPhoto || !hasCoverText) {
-              useUIStore.getState().openModal('coverGuard', {
-                hasCoverPhoto,
-                hasCoverText,
-                goToCover: () => {
-                  const coverIdx = spreads.findIndex(s => s.isCover);
-                  if (coverIdx >= 0) useEditorStore.getState().goToSpread(coverIdx);
-                },
-              });
-              return;
-            }
-          }
-
-          const { clientPhone: cp, clientEmail: ce, isAdmin, user: u } = useAuthStore.getState();
-          const hasPhone = !!cp;
-          const hasEmail = !!(u?.email || ce);
-          if (!isAdmin && (!hasPhone || !hasEmail)) {
-            sessionStorage.setItem('pendingSave', '1');
-            navigate('/app/login?returnTo=/app/checkout&mode=register');
-          } else {
-            await doSave();
-            navigate('/app/checkout');
-          }
-        }} />}
+        {mobileShowEditor && <MobileBottomToolbar onSave={handleSave} onOrder={handleOrder} />}
       </div>
 
       {/* Upload progress — desktop floating bar */}
-      <div className="hidden sm:block">
+      <div className="hidden lg:block">
         <UploadProgressBar />
       </div>
 
       {/* Designer nudge — appears once after uploading 5+ photos */}
       <DesignerNudge />
+
+      {/* Album preview modal — unified for mobile and desktop */}
+      {showAlbumPreview && (
+        <Suspense fallback={null}>
+          <AlbumPreviewModal
+            onConfirm={() => {
+              setShowAlbumPreview(false);
+              navigate('/app/checkout');
+            }}
+            onClose={() => setShowAlbumPreview(false)}
+          />
+        </Suspense>
+      )}
 
       {lightboxIdx !== null && photos.length > 0 && (
         <Lightbox

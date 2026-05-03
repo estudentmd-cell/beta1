@@ -129,7 +129,7 @@ export default function AppHeader() {
         {/* ── MOBILE: Hamburger ── */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="sm:hidden w-11 h-11 flex items-center justify-center -ml-1.5"
+          className="lg:hidden w-11 h-11 flex items-center justify-center -ml-1.5"
           aria-label="Menu"
           aria-expanded={mobileOpen}
         >
@@ -150,7 +150,7 @@ export default function AppHeader() {
         </Link>
 
         {/* ── DESKTOP: Nav links ── */}
-        <nav className="hidden sm:flex items-center gap-1 ml-6">
+        <nav className="hidden lg:flex items-center gap-1 ml-6">
           {/* Fotocărți dropdown */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <Link to="/colectie/toate" className={`px-3 py-1.5 text-[13px] font-medium hover:text-white hover:bg-white/15 rounded-lg transition-colors flex items-center gap-1 ${dropdownOpen ? 'text-white bg-white/15' : 'text-white'}`}
@@ -239,7 +239,7 @@ export default function AppHeader() {
           )}
 
           {/* Cart icon */}
-          <Link to={hasIdentity ? '/app/cabinet' : '/app/login?returnTo=/app/cabinet'} className="hidden sm:flex relative w-9 h-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors">
+          <Link to={hasIdentity ? '/app/cabinet' : '/app/login?returnTo=/app/cabinet'} className="hidden lg:flex relative w-9 h-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -248,7 +248,7 @@ export default function AppHeader() {
           </Link>
 
           {/* User Account Popover */}
-          <div className="hidden sm:block relative" ref={userPopoverRef}>
+          <div className="hidden lg:block relative" ref={userPopoverRef}>
             <button
               onClick={() => setUserPopover(!userPopover)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-full hover:bg-white/20 transition-all"
@@ -322,7 +322,7 @@ export default function AppHeader() {
 
       {/* ══ MOBILE FULLSCREEN MENU ══ */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[39] overflow-y-auto sm:hidden animate-[fadeIn_0.2s_ease]"
+        <div className="fixed inset-0 z-[39] overflow-y-auto lg:hidden animate-[fadeIn_0.2s_ease]"
           style={{
             paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
             background: 'rgba(255, 255, 255, 0.92)',

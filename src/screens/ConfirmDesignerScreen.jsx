@@ -69,6 +69,7 @@ export default function ConfirmDesignerScreen() {
   const coverName = s.coverName || '';
   const price = s.price || 0;
   const service = s.service || 'Design complet';
+  const isSelfService = service === 'Verificare' || service === 'Verificare album' || s.orderType === 'self';
   const estimateDate = formatDate(calculateDeliveryDate(18));
 
   // No order found — redirect home
@@ -143,12 +144,12 @@ export default function ConfirmDesignerScreen() {
             <div className="relative flex-1">
               <div className="absolute left-[11px] top-3 bottom-3 w-[1.5px] bg-[#F0EDEA]" />
               <div className="space-y-2">
-                <TimelineStep icon={<CheckCircle className="w-3 h-3" />} title="Comanda înregistrată" status="done" />
-                <TimelineStep icon={<Phone className="w-3 h-3" />} title="Managerul te contactează" subtitle="Confirmare comandă și factură" status="active" />
-                <TimelineStep icon={<Palette className="w-3 h-3" />} title="Designerul lucrează" status="upcoming" />
-                <TimelineStep icon={<Eye className="w-3 h-3" />} title="Verifici și aprobi" status="upcoming" />
+                <TimelineStep icon={<CheckCircle className="w-3 h-3" />} title="Comanda inregistrata" status="done" />
+                <TimelineStep icon={<Phone className="w-3 h-3" />} title="Managerul te contacteaza" subtitle="Confirmare comanda si factura" status="active" />
+                {!isSelfService && <TimelineStep icon={<Palette className="w-3 h-3" />} title="Designerul lucreaza" status="upcoming" />}
+                {!isSelfService && <TimelineStep icon={<Eye className="w-3 h-3" />} title="Verifici si aprobi" status="upcoming" />}
                 <TimelineStep icon={<Printer className="w-3 h-3" />} title="Trimis la tipar" status="upcoming" />
-                <TimelineStep icon={<Truck className="w-3 h-3" />} title="Livrat la ușa ta" status="upcoming" />
+                <TimelineStep icon={<Truck className="w-3 h-3" />} title="Livrat la usa ta" status="upcoming" />
               </div>
             </div>
 

@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══ Responsive System — 1024px = mobile↔desktop ═══ */
+.mobile-only  { display: block; }
+.desktop-only { display: none;  }
+
+@media (min-width: 1024px) {
+  .mobile-only  { display: none;  }
+  .desktop-only { display: block; }
+}
+
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

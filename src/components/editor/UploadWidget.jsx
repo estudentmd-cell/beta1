@@ -83,8 +83,7 @@ export default function UploadWidget() {
   if (minimized) {
     return (
       <div
-        className="fixed right-3 z-[70] bg-white rounded-xl shadow-lg border border-[#E8E4DB] px-3 py-2 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all animate-[fadeIn_0.2s_ease] sm:bottom-4 sm:right-4"
-        style={{ bottom: typeof window !== 'undefined' && window.innerWidth < 640 ? 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' : '12px' }}
+        className="fixed right-3 z-[70] bg-white rounded-xl shadow-lg border border-[#E8E4DB] px-3 py-2 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all animate-[fadeIn_0.2s_ease] bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)] lg:bottom-4 lg:right-4"
         onClick={() => setMinimized(false)}
       >
         <div className="w-20 h-1.5 bg-[#E8E4DB] rounded-full overflow-hidden">
@@ -99,8 +98,7 @@ export default function UploadWidget() {
 
   return (
     <div
-      className="fixed right-3 z-[70] w-[280px] bg-white rounded-2xl shadow-xl border border-[#E8E4DB] overflow-hidden animate-[fadeIn_0.25s_ease] sm:bottom-4 sm:right-4 sm:w-[300px]"
-      style={{ bottom: typeof window !== 'undefined' && window.innerWidth < 640 ? 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' : '12px' }}
+      className="fixed right-3 z-[70] w-[280px] bg-white rounded-2xl shadow-xl border border-[#E8E4DB] overflow-hidden animate-[fadeIn_0.25s_ease] bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)] lg:bottom-4 lg:right-4 lg:w-[300px]"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-[#FAF8F5] border-b border-[#E8E4DB]">
