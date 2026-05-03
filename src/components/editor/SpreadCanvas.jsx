@@ -1,6 +1,6 @@
 // src/components/editor/SpreadCanvas.jsx
 import { useMemo, useState, useEffect, memo } from 'react';
-import { computeRects, computeSeps, proTemplateToRects } from '../../utils/layoutEngine';
+import { computeRects, computeSeps, proTemplateToRects, MASK_RATIOS } from '../../utils/layoutEngine';
 import { getDimensions } from '../../utils/dimensions';
 import { getCoverDimensions } from '../../utils/coverDimensions';
 
@@ -287,7 +287,34 @@ function PageFrames({ tree, offsetX, offsetY, pageW, pageH, gapPx, pageBounds, p
         h: leaf._collageCell.height * pageH,
       }));
     }
-    return computeRects(tree, innerX, innerY, innerW, innerH, gapPx);
+    const rawRects = computeRects(tree, innerX, innerY, innerW, innerH, gapPx);
+    // Apply mask aspect ratio ONLY if tree has _useMaskFitting flag
+    const useMask = tree?._useMaskFitting || rawRects.some(r => r.leaf?._useMaskFitting);
+    if (!useMask) return rawRects;
+    return rawRects.map(rect => {
+      const maskTag = rect.leaf?.slot;
+      const maskRatio = MASK_RATIOS?.[maskTag];
+      if (!maskRatio || maskRatio === 1) return rect;
+      const allocW = rect.w, allocH = rect.h;
+      const allocRatio = allocW / allocH;
+      let fitW, fitH;
+      if (allocRatio > maskRatio) {
+        // Allocated space is wider than mask — constrain by height
+        fitH = allocH;
+        fitW = fitH * maskRatio;
+      } else {
+        // Allocated space is taller than mask — constrain by width
+        fitW = allocW;
+        fitH = fitW / maskRatio;
+      }
+      return {
+        ...rect,
+        x: rect.x + (allocW - fitW) / 2,
+        y: rect.y + (allocH - fitH) / 2,
+        w: fitW,
+        h: fitH,
+      };
+    });
   }, [tree, innerX, innerY, innerW, innerH, gapPx, tick, proTemplate, offsetX, offsetY, spreadW, spreadH]);
 
   const seps = useMemo(() => {

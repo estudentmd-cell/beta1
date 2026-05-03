@@ -24,8 +24,30 @@ h1 { font-size: 22px; margin-bottom: 5px; color: #1C1C1E; }
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
 <script type="module">
-import { buildTree, getVariantCount, assignPhotos, computeRects } from '/src/utils/layoutEngine.js';
+import { buildTree, getVariantCount, assignPhotos, computeRects, MASK_RATIOS } from '/src/utils/layoutEngine.js';
 const COLORS = ['#3D6B5E','#5B8A7A','#7BA99A','#4A7A6A','#2D5B4E','#6B9B8A','#8DBAA9','#3A6858','#4D7D6D','#5E8E7E'];
+
+// Apply mask aspect ratio fitting — same logic as SpreadCanvas
+function applyMaskFitting(rects) {
+  const useMask = rects.some(r => r.leaf?._useMaskFitting);
+  if (!useMask) return rects;
+  return rects.map(rect => {
+    if (!rect.leaf?._useMaskFitting) return rect;
+    const maskTag = rect.leaf?.slot;
+    const maskRatio = MASK_RATIOS?.[maskTag];
+    if (!maskRatio || maskRatio === 1) return rect;
+    const allocW = rect.w, allocH = rect.h;
+    const allocRatio = allocW / allocH;
+    let fitW, fitH;
+    if (allocRatio > maskRatio) {
+      fitH = allocH; fitW = fitH * maskRatio;
+    } else {
+      fitW = allocW; fitH = fitW / maskRatio;
+    }
+    return { ...rect, x: rect.x + (allocW - fitW) / 2, y: rect.y + (allocH - fitH) / 2, w: fitW, h: fitH };
+  });
+}
+
 let active = 4;
 function render(n) {
   active = n;
@@ -38,7 +60,7 @@ function render(n) {
   for (let vi = 0; vi < total; vi++) {
     const tree = buildTree(n, vi);
     assignPhotos(tree, photos);
-    const rects = computeRects(tree, 0, 0, W, H, 2);
+    const rects = applyMaskFitting(computeRects(tree, 0, 0, W, H, 2));
     const card = document.createElement('div');
     card.className = 'card';
     const sp = document.createElement('div');
