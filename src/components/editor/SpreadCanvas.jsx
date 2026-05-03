@@ -270,6 +270,23 @@ function PageFrames({ tree, offsetX, offsetY, pageW, pageH, gapPx, pageBounds, p
     if (proTemplate) {
       return proTemplateToRects(proTemplate, offsetX, offsetY, spreadW || pageW * 2, spreadH || pageH, gapPx, tree);
     }
+    // Collage layout — use _collageCell positions from collageLayoutEngine
+    const leaves = [];
+    const collectLeaves = (node) => {
+      if (!node) return;
+      if (node.type === 'leaf') { leaves.push(node); return; }
+      node.children?.forEach(collectLeaves);
+    };
+    collectLeaves(tree);
+    if (leaves.length > 0 && leaves[0]._collageCell) {
+      return leaves.map(leaf => ({
+        leaf,
+        x: offsetX + leaf._collageCell.x * pageW,
+        y: offsetY + leaf._collageCell.y * pageH,
+        w: leaf._collageCell.width * pageW,
+        h: leaf._collageCell.height * pageH,
+      }));
+    }
     return computeRects(tree, innerX, innerY, innerW, innerH, gapPx);
   }, [tree, innerX, innerY, innerW, innerH, gapPx, tick, proTemplate, offsetX, offsetY, spreadW, spreadH]);
 

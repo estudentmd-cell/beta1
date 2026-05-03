@@ -856,6 +856,25 @@ const useEditorStore = create((set, get) => ({
     set({ spreads: newSpreads, _dirty: true, saveStatus: 'idle' });
   },
 
+  // ── Apply collage layout (photo-aware, from collageLayoutEngine) ──
+  applyCollageLayout: (cells) => {
+    const state = get();
+    const sp = state.spreads[state.currentSpread];
+    if (!sp || sp.isCover || sp.photos.length === 0) return;
+    state._pushUndo();
+    const { cellsToTree } = require('../utils/collageLayoutEngine');
+    const tree = cellsToTree(cells, sp.photos);
+    const newSpreads = [...state.spreads];
+    newSpreads[state.currentSpread] = {
+      ...sp,
+      mode: 'spread',
+      full: { photos: sp.photos, tree, _vi: 0, bounds: sp.full?.bounds },
+      left: { ...sp.left },
+      right: { ...sp.right },
+    };
+    set({ spreads: newSpreads, _dirty: true, saveStatus: 'idle', _tick: state._tick + 1 });
+  },
+
   // ── Apply a professional template to current spread ──
   applyProTemplate: async (template) => {
     if (!template) return;

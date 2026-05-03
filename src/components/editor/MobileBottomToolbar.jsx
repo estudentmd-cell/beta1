@@ -551,7 +551,7 @@ function ToolbarNav({ activeSheet, toggleSheet, onSave, onOrder }) {
           <span className="text-[10px] leading-tight font-medium">Galerie</span>
         </button>
         {/* Sabloane — templates (like Periodica "Шаблоны") */}
-        <button onClick={() => toggleSheet('templates')}
+        <button onClick={() => window.dispatchEvent(new Event('openTemplatePicker'))}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${activeSheet === 'templates' ? 'text-[#3D6B5E]' : 'text-[#8A8078]'}`}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />

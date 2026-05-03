@@ -933,14 +933,6 @@ export default function EditorCanvas() {
           }`} title="Panoramă / Pagină">
           {isSpreadMode ? 'Panoramă' : 'Pagină'}
         </button>
-        {/* PRO template picker — hidden until ready
-        <button onClick={() => setTemplatePickerOpen(true)}
-          className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mr-2 bg-[#3D6B5E]/15 text-[#3D6B5E] hover:bg-[#3D6B5E]/25 transition-colors cursor-pointer"
-          title="Template-uri profesionale">
-          PRO
-        </button>
-        */}
-
         <div className="absolute flex items-center gap-0.5" style={{ left: '29.5%', transform: 'translateX(-50%)' }}>
           <button onClick={sbarLP} disabled={!hasPhotos} className="w-6 h-6 flex items-center justify-center text-[#8A8078] hover:text-white hover:bg-[#E8E4DB] rounded text-xs transition-colors disabled:opacity-20" title="Layout anterior stânga">‹</button>
           <div className="w-6 h-6 flex items-center justify-center rounded text-[#8A8078]">

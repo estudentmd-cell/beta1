@@ -333,33 +333,12 @@ export default function EditorSidebar({ onOpenLightbox }) {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="w-full flex items-center justify-center gap-2 bg-[#3D6B5E] text-white rounded-xl h-[44px] text-[13px] font-semibold hover:bg-[#2d5445] active:scale-[0.97] transition-all"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          Încarcă fotografii
-        </button>
         <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleFiles} className="hidden" />
-
-        {/* Gallery button — opens full-screen organizer */}
-        {photos.length > 0 && (
-          <button onClick={() => setShowGallery(true)}
-            className="w-full flex items-center justify-center gap-2 mt-2 h-[36px] rounded-xl text-[12px] font-medium text-[#3D6B5E] border border-[#3D6B5E]/20 hover:bg-[#EAF0EC] active:scale-[0.97] transition-all">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            Organizează galeria
-          </button>
-        )}
-        {/* Auto-fill button */}
-        {photos.length > 0 && (
-          <button onClick={() => useUIStore.getState().openModal('autoFill')}
-            className="w-full flex items-center justify-center gap-2 mt-2 h-[36px] rounded-xl text-[12px] font-medium text-[#1C1C1E] bg-[#F5F3F0] border border-[#E5E5EA] hover:bg-[#ECEAE6] active:scale-[0.97] transition-all">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-            Arranjeaza automat
-          </button>
-        )}
+        <button onClick={() => fileRef.current?.click()}
+          className="w-full flex items-center justify-center gap-1.5 bg-[#3D6B5E] text-white rounded-lg h-[34px] text-[12px] font-semibold hover:bg-[#2d5445] active:scale-[0.97] transition-all">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adauga poze
+        </button>
       </div>
 
       {/* Gallery popup */}

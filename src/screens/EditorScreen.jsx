@@ -16,6 +16,7 @@ import MobileBottomToolbar from '../components/editor/MobileBottomToolbar';
 const WelcomeUploadPopup = lazy(() => import('../components/editor/WelcomeUploadPopup'));
 const AlbumPreviewModal = lazy(() => import('../components/editor/AlbumPreviewModal'));
 import PhotosReadyPopup from '../components/editor/PhotosReadyPopup';
+import TemplatePicker from '../components/editor/TemplatePicker';
 import MobileVerticalEditor from '../components/editor/MobileVerticalEditor';
 import { createProjectSnapshot, saveProject, generateId } from '../utils/projectStorage';
 import { updateOrderStatus } from '../utils/adminData';
@@ -27,6 +28,8 @@ import { getPagePrice } from '../utils/pricing';
 import { getAllCoverTemplates } from '../utils/coverData';
 import { logProjectSaved, logPhotoUpload } from '../utils/editHistory';
 import UploadWidget from '../components/editor/UploadWidget';
+import EditorToolbar from '../components/editor/EditorToolbar';
+import TemplatePanel from '../components/editor/TemplatePanel';
 import OfflineBanner from '../components/editor/OfflineBanner';
 
 /* PhoneGate removed — auth is now handled via email_code or google */
@@ -105,6 +108,8 @@ export default function EditorScreen() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showAlbumPreview, setShowAlbumPreview] = useState(false);
   const [showPhotosReady, setShowPhotosReady] = useState(false);
+  const [mobileTemplatePickerOpen, setMobileTemplatePickerOpen] = useState(false);
+  const [activeToolPanel, setActiveToolPanel] = useState('gallery');
   const welcomeShownRef = useRef(false);
   const navigate = useNavigate();
 
@@ -174,6 +179,13 @@ export default function EditorScreen() {
     const handler = () => setShowSavePopup(true);
     window.addEventListener('openSavePopup', handler);
     return () => window.removeEventListener('openSavePopup', handler);
+  }, []);
+
+  // Listen for template picker on mobile
+  useEffect(() => {
+    const handler = () => setMobileTemplatePickerOpen(true);
+    window.addEventListener('openTemplatePicker', handler);
+    return () => window.removeEventListener('openTemplatePicker', handler);
   }, []);
 
   // Listen for album preview event (triggered by handleOrder after validation)
@@ -900,7 +912,9 @@ export default function EditorScreen() {
 
       {/* ── DESKTOP LAYOUT ── */}
       <div className="hidden lg:flex flex-1 min-h-0">
-        {!readOnly && <EditorSidebar onOpenLightbox={(idx) => setLightboxIdx(idx)} />}
+        {!readOnly && <EditorToolbar activePanel={activeToolPanel} onPanelChange={setActiveToolPanel} />}
+        {!readOnly && activeToolPanel === 'gallery' && <EditorSidebar onOpenLightbox={(idx) => setLightboxIdx(idx)} />}
+        {!readOnly && activeToolPanel === 'templates' && <TemplatePanel />}
         <div className="flex-1 flex flex-col min-w-0">
           <EditorCanvas />
           <EditorStrip />
@@ -993,6 +1007,11 @@ export default function EditorScreen() {
 
       {/* Designer nudge — appears once after uploading 5+ photos */}
       <DesignerNudge />
+
+      {/* Template picker — mobile (desktop has its own in EditorCanvas) */}
+      <div className="lg:hidden">
+        <TemplatePicker isOpen={mobileTemplatePickerOpen} onClose={() => setMobileTemplatePickerOpen(false)} />
+      </div>
 
       {/* Photos ready guide — shows once after first upload */}
       {showPhotosReady && (
